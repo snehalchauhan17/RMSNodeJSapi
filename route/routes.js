@@ -10,7 +10,7 @@
 
 const {Router} = require('express')
 const bcrypt =require('bcryptjs')
-const jwt =require('jsonwebtoken')
+//const jwt =require('jsonwebtoken')
 const User =require('../src/UserMaster/MUserMasterModel')
 const router =Router()
 
