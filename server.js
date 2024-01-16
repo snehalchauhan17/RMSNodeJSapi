@@ -110,7 +110,8 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
-mongoose.connect("mongodb://localhost:27017/RMS",{useNewUrlParser: true,  useUnifiedTopology: true },)
+//mongoose.connect("mongodb://localhost:27017/RMS",{useNewUrlParser: true,  useUnifiedTopology: true },)
+mongoose.connect("mongodb://localhost:27017/RMS")
 .then(()=>{
           console.log('connect to MongoDB')
         app.listen(3001, ()=> {
