@@ -18,7 +18,7 @@ router.post('/MUserMaster', async (req, res) => {
   let name = req.body.name
   let username = req.body.username
   let password = req.body.password
-
+console.log(password)
   const salt = await bcrypt.genSalt(10)
   const hashedPassword = await bcrypt.hash(password, salt)
 
@@ -41,7 +41,7 @@ router.post('/MUserMaster', async (req, res) => {
 
     const { _id } = await result.toJSON()
 
-    const token = jwt.sign({ _id: _id }, "secret")
+    const token = jwt.sign({ _id: _id }, "secret");
 
     res.cookie("jwt", token, {
       httpOnly: true,
