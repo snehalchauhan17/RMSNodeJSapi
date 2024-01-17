@@ -2,17 +2,14 @@ const mongoose = require('mongoose')
 const musermasterSchema =mongoose.Schema(
     {
       
-    firstname: {
+    name: {
         type: String,
         required: true
     },
-    lastname: {
+    username: {
         type: String,
-        required: true
-    },
-    email: {
-        type: String,
-        required: true
+        unique: true,
+        required:true
     },
     password: {
         type: String,

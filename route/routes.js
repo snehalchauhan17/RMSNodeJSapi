@@ -8,21 +8,57 @@
 // module.exports = router;
 
 
-const {Router} = require('express')
-const bcrypt =require('bcryptjs')
-//const jwt =require('jsonwebtoken')
-const User =require('../src/UserMaster/MUserMasterModel')
-const router =Router()
+const { Router } = require('express')
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const User = require('../src/UserMaster/MUserMasterModel')
+const router = Router()
 
-router.post('/MUserMaster',async(req,res)=>{
-      try{
-        const UserMaster= await User.create(req.body)
-        res.status(200).json(UserMaster);
-    
-      }
-      catch(error){
-    console.log(error.message);
-    res.status(500).json({message:error.message});
-      }
+router.post('/MUserMaster', async (req, res) => {
+  let name = req.body.name
+  let username = req.body.username
+  let password = req.body.password
+
+  const salt = await bcrypt.genSalt(10)
+  const hashedPassword = await bcrypt.hash(password, salt)
+
+  const record = await User.findOne({ username: username })
+  if (record) {
+    return res.status(400).send({
+      message: "Username is already Created"
+
     })
-     module.exports = router;
+  }
+  else {
+    const user = new User({
+      name: name,
+      username: username,
+      password: hashedPassword
+    })
+    const result = await user.save()
+
+    //JWT Token 
+
+    const { _id } = await result.toJSON()
+
+    const token = jwt.sign({ _id: _id }, "secret")
+
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      maxAge: 2 * 60 * 60 * 1000
+    });
+    res.json({
+      message: "success",
+      user: result
+    });
+  }
+});
+router.post("/login", async (req, res) => {
+  res.send("Login User")
+})
+
+router.get("/user", async (req, res) => {
+  res.send("User")
+})
+
+module.exports = router;
