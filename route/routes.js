@@ -18,7 +18,7 @@ router.post('/MUserMaster', async (req, res) => {
   let name = req.body.name
   let username = req.body.username
   let password = req.body.password
-console.log(password)
+  console.log(password)
   const salt = await bcrypt.genSalt(10)
   const hashedPassword = await bcrypt.hash(password, salt)
 
@@ -53,28 +53,52 @@ console.log(password)
     });
   }
 });
-router.post("/login", async (req, res) => {
-  res.send("Login User")
-})
+
 
 router.get("/MUserMaster", async (req, res) => {
- 
-  try{
-const cookie =req.cookies['jwt']
-const claims =jwt.verify(cookie,"secret")
-if(!claims){
-  return res.status(401).send({
-    message:"unauthenticated"
+
+  try {
+    const cookie = req.cookies['jwt']
+    const claims = jwt.verify(cookie, "secret")
+    if (!claims) {
+      return res.status(401).send({
+        message: "unauthenticated"
+      })
+    }
+    const user = await User.findOne({ _id: claims._id })
+
+    const { password, ...data } = await user.toJSON()
+    res.send(data)
+  }
+  catch (err) {
+
+  }
+})
+router.post("/login", async (req, res) => {
+  const user = await User.findOne({ username: req.body.username })
+  if (!user) {
+    return res.status(404).send({
+      message: "User Not Found"
+    })
+  }
+  if (!(await bcrypt.compare(req.body.password, user.password))) {
+    return res.status(400).send({
+      message: "Password is InCorrect"
+    })
+  }
+  const token = jwt.sign({ _id: user._id }, "secret key")
+
+  res.cookie("jwt", token, {
+    httpOnly: true,
+    maxAge: 2 * 60 * 60 * 1000
   })
-}
-const user = await User.findOne({_id:claims._id})
-
-const {password,...data} = await user.toJSON()
-res.send(data)
-  }
-  catch(err){
-
-  }
+  res.send({
+    message: "success"
+  })
+});
+router.post("/logout", async (req, res) => {
+  res.cookie("jwt", "", { maxAge: 0 })
+  res.send({ message: "success" })
 })
 
 module.exports = router;
