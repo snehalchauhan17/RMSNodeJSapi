@@ -1,17 +1,9 @@
-// var express = require('express');
-
-// var UserMasterController = require('../src/UserMaster/UserMasterController');
-// const router = express.Router();
-// router.route('/UserMaster/login').post(UserMasterController.loginUserControllerFn);
-// router.route('/UserMaster/create').post(UserMasterController.createUserControllerFn);
-// app.use(express.json());
-// module.exports = router;
-
 
 const { Router } = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../src/UserMaster/MUserMasterModel')
+const DataEntry = require('../src/DataEntry/DataEntryModel')
 const router = Router()
 
 router.post('/MUserMaster', async (req, res) => {
@@ -100,5 +92,60 @@ router.post("/logout", async (req, res) => {
   res.cookie("jwt", "", { maxAge: 0 })
   res.send({ message: "success" })
 })
+
+
+
+router.post('/InsertRecord', async (req, res) => {
+	  let Id			     = req.body.Id			             
+    let Year         = req.body.Year        
+    let Branch       = req.body.Branch      
+    let Category     = req.body.Category    
+    let Types        = req.body.Types       
+    let Subject      = req.body.Subject     
+    let Name         = req.body.Name        
+    let Address      = req.body.Address     
+    let Village      = req.body.Village     
+    let Taluka       = req.body.Taluka    
+    let OrderName = req.body.OrderName
+    let CupBoardNo = req.body.CupBoardNo
+    let PartitionNo = Req.body.PartitionNo
+    let FileNo = Req.body.FileNo
+    let NotePage = Req.body.NotePage
+    let PostPage = Req.body.PostPage
+    let TotalPage = Req.body.TotalPage	  
+    let DocumentName = req.body.DocumentName
+    let DocumentID   = req.body.DocumentID  
+
+    const dataentry = new DataEntry({
+
+      Id			    : Id		,	
+      Year        : Year        ,
+      Branch      : Branch      ,
+      Category    : Category    ,
+      Types       : Types       ,
+      Subject     : Subject     ,
+      Name        : Name        ,
+      Address     : Address     ,
+      Village     : Village     ,
+      Taluka      : Taluka      ,
+      OrderName 	: OrderName 	,
+      CupBoardNo 	: CupBoardNo ,
+      PartitionNo : PartitionNo ,
+      FileNo 		: FileNo 		,
+      NotePage 	: NotePage 	  ,
+      PostPage 	: PostPage 	  ,
+      TotalPage   : TotalPage   ,
+      DocumentName: DocumentName,
+      DocumentID  : DocumentID  
+      
+    })
+    const result = await dataentry.save()
+
+    res.json({
+      message: "success",
+      dataentry: result
+    });
+  });
+
 
 module.exports = router;
