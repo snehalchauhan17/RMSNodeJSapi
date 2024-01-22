@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-const musermasterSchema =mongoose.Schema(
+const dataentryschema =mongoose.Schema(
     {
     Id:             { type: String, unique: true, required:true },    
     Year:           { type: String, required: true  },
@@ -28,5 +28,5 @@ TotalPage  :         { type: String, required: true },
 
 )
 
-const MUserMaster =mongoose.model('MUserMaster',musermasterSchema);
-module.exports =MUserMaster;
+const DataEntry =mongoose.model('DataEntry',dataentryschema);
+module.exports =DataEntry;
