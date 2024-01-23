@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-const musermasterSchema =mongoose.Schema(
+const dataentryschema =mongoose.Schema(
     {
     Id:             { type: String, unique: true, required:true },    
     Year:           { type: String, required: true  },
@@ -28,5 +28,7 @@ const musermasterSchema =mongoose.Schema(
 
 )
 
-const DataEntry =mongoose.model('DataEntry',musermasterSchema);
+
+const DataEntry =mongoose.model('DataEntry',dataentryschema);
+
 module.exports =DataEntry;

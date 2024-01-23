@@ -47,7 +47,7 @@ router.post('/MUserMaster', async (req, res) => {
 });
 
 
-router.get("/MUserMaster", async (req, res) => {
+router.get("/getName", async (req, res) => {
 
   try {
     const cookie = req.cookies['jwt']
@@ -67,6 +67,10 @@ router.get("/MUserMaster", async (req, res) => {
   }
 })
 router.post("/login", async (req, res) => {
+  let pwd = req.body.password
+  let username = req.body.username
+  console.log(pwd);
+  console.log(username);
   const user = await User.findOne({ username: req.body.username })
   if (!user) {
     return res.status(404).send({
@@ -79,22 +83,28 @@ router.post("/login", async (req, res) => {
     })
   }
   const token = jwt.sign({ _id: user._id }, "secret key")
+  console.log(user._id)
+  console.log(token);
+  const result = await user.save()
 
   res.cookie("jwt", token, {
     httpOnly: true,
     maxAge: 2 * 60 * 60 * 1000
   })
+ 
   res.send({
-    message: "success"
+    message: "success",
+    user: result
   })
 });
+
 router.post("/logout", async (req, res) => {
   res.cookie("jwt", "", { maxAge: 0 })
   res.send({ message: "success" })
 })
 
 
-
+//Data Enter
 router.post('/InsertRecord', async (req, res) => {
 	  let Id			     = req.body.Id			             
     let Year         = req.body.Year        
@@ -108,11 +118,11 @@ router.post('/InsertRecord', async (req, res) => {
     let Taluka       = req.body.Taluka    
     let OrderName = req.body.OrderName
     let CupBoardNo = req.body.CupBoardNo
-    let PartitionNo = Req.body.PartitionNo
-    let FileNo = Req.body.FileNo
-    let NotePage = Req.body.NotePage
-    let PostPage = Req.body.PostPage
-    let TotalPage = Req.body.TotalPage	  
+    let PartitionNo = req.body.PartitionNo
+    let FileNo = req.body.FileNo
+    let NotePage = req.body.NotePage
+    let PostPage = req.body.PostPage
+    let TotalPage = req.body.TotalPage	  
     let DocumentName = req.body.DocumentName
     let DocumentID   = req.body.DocumentID  
 
@@ -148,4 +158,74 @@ router.post('/InsertRecord', async (req, res) => {
   });
 
 
+
+  //Data Update
+  router.put('/UpdateRecord', async (req, res) => {
+  //   if(!req.body) {
+  //     res.status(400).send({
+  //         message: "Data to update can not be empty!"
+  //     });
+  // }
+  
+  const id = req.body._id;
+
+  
+  await DataEntry.findByIdAndUpdate(id, req.body).then(data => {
+ 
+      if (!data) {
+          res.status(404).send({
+              message: `User not found.`
+          });
+      }else{
+          res.send({ message: "User updated successfully." })
+      }
+  }).catch(err => {
+      res.status(500).send({
+          message: err.message
+      });
+  });
+  });
+
+
+  //Data Delete
+    router.delete('/DeleteRecord', async (req, res) => {
+    await DataEntry.findByIdAndRemove(req.body._id).then(data => {
+        if (!data) {
+          res.status(404).send({
+            message: `User not found.`
+          });
+        } else {
+          res.send({
+            message: "User deleted successfully!"
+          });
+        }
+    }).catch(err => {
+        res.status(500).send({
+          message: err.message
+        });
+    });
+});
+
+
+//Data Select
+router.get('/FindRecordbyID', async (req, res) => {
+  try {
+    console.log(req.params._id)
+      const user = await DataEntry.findById(req.params._id);
+      res.status(200).json(user);
+  } catch(error) {
+      res.status(404).json({ message: error.message});
+  }
+});
+
+
+// Retrieve all users from the database.
+router.get('/FindAllRecord', async (req, res) => {
+  try {
+      const user = await DataEntry.find();
+      res.status(200).json(user);
+  } catch(error) {
+      res.status(404).json({message: error.message});
+  }
+});
 module.exports = router;
