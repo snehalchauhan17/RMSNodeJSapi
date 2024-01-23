@@ -12,12 +12,12 @@ const musermasterSchema =mongoose.Schema(
     Village:        { type: String, required: true },
     Taluka:         { type: String, required: true },
     OrderName 	:         { type: String, required: true },
-CupBoardNo :         { type: String, required: true },
-PartitionNo:         { type: String, required: true },
-FileNo 		:         { type: String, required: true },
-NotePage 	:         { type: String, required: true },
-PostPage 	:         { type: String, required: true },
-TotalPage  :         { type: String, required: true },
+    CupBoardNo :         { type: String, required: true },
+    PartitionNo:         { type: String, required: true },
+    FileNo 		:         { type: String, required: true },
+    NotePage 	:         { type: String, required: true },
+    PostPage 	:         { type: String, required: true },
+    TotalPage  :         { type: String, required: true },
 
     DocumentName: { type: String, required: true },
     DocumentID :  { type: String, required: true },
@@ -28,5 +28,5 @@ TotalPage  :         { type: String, required: true },
 
 )
 
-const MUserMaster =mongoose.model('MUserMaster',musermasterSchema);
-module.exports =MUserMaster;
+const DataEntry =mongoose.model('DataEntry',musermasterSchema);
+module.exports =DataEntry;
