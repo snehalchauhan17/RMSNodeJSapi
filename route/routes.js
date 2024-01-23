@@ -47,6 +47,40 @@ router.post('/MUserMaster', async (req, res) => {
 });
 
 
+router.post("/login", async (req, res) => {
+  let pwd = req.body.password
+  let username = req.body.username
+  console.log(pwd);
+  console.log(username);
+  const user = await User.findOne({ username: req.body.username })
+  if (!user) {
+    return res.status(404).send({
+      message: "User Not Found"
+    })
+  }
+  if (!(await bcrypt.compare(req.body.password, user.password))) {
+    return res.status(400).send({
+      message: "Password is InCorrect"
+    })
+  }
+  const token = jwt.sign({ _id: user._id }, "secret")
+  console.log(user._id)
+  console.log(token);
+  const result = await user.save()
+
+  res.cookie("jwt", token, {
+    httpOnly: true,
+    maxAge: 2 * 60 * 60 * 1000
+  })
+ 
+  res.send({
+    message: "success",
+    user: result
+  })
+});
+
+
+
 router.get("/getName", async (req, res) => {
 
   try {
@@ -66,42 +100,14 @@ router.get("/getName", async (req, res) => {
 
   }
 })
-router.post("/login", async (req, res) => {
-  let pwd = req.body.password
-  let username = req.body.username
-  console.log(pwd);
-  console.log(username);
-  const user = await User.findOne({ username: req.body.username })
-  if (!user) {
-    return res.status(404).send({
-      message: "User Not Found"
-    })
-  }
-  if (!(await bcrypt.compare(req.body.password, user.password))) {
-    return res.status(400).send({
-      message: "Password is InCorrect"
-    })
-  }
-  const token = jwt.sign({ _id: user._id }, "secret key")
-  console.log(user._id)
-  console.log(token);
-  const result = await user.save()
-
-  res.cookie("jwt", token, {
-    httpOnly: true,
-    maxAge: 2 * 60 * 60 * 1000
-  })
- 
-  res.send({
-    message: "success",
-    user: result
-  })
-});
 
 router.post("/logout", async (req, res) => {
   res.cookie("jwt", "", { maxAge: 0 })
   res.send({ message: "success" })
 })
+
+
+
 
 
 //Data Enter
@@ -150,6 +156,7 @@ router.post('/InsertRecord', async (req, res) => {
       
     })
     const result = await dataentry.save()
+    console.log(result)
 
     res.json({
       message: "success",
