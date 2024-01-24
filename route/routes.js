@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken')
 const User = require('../src/UserMaster/MUserMasterModel')
 const DataEntry = require('../src/DataEntry/DataEntryModel')
 const router = Router()
+const multer = require('multer');
+const fileUpload = require('../src/DataEntry/FileUpload')
 
 router.post('/MUserMaster', async (req, res) => {
   let name = req.body.name
@@ -112,7 +114,7 @@ router.post("/logout", async (req, res) => {
 
 //Data Enter
 router.post('/InsertRecord', async (req, res) => {
-	  let Id			     = req.body.Id			             
+	//  let Id			     = req.body.Id			             
     let Year         = req.body.Year        
     let Branch       = req.body.Branch      
     let Category     = req.body.Category    
@@ -130,11 +132,11 @@ router.post('/InsertRecord', async (req, res) => {
     let PostPage = req.body.PostPage
     let TotalPage = req.body.TotalPage	  
     let DocumentName = req.body.DocumentName
-    let DocumentID   = req.body.DocumentID  
+    // let DocumentID   = req.body.DocumentID  
 
     const dataentry = new DataEntry({
 
-      Id			    : Id		,	
+     // Id			    : Id		,	
       Year        : Year        ,
       Branch      : Branch      ,
       Category    : Category    ,
@@ -152,7 +154,7 @@ router.post('/InsertRecord', async (req, res) => {
       PostPage 	: PostPage 	  ,
       TotalPage   : TotalPage   ,
       DocumentName: DocumentName,
-      DocumentID  : DocumentID  
+      // DocumentID  : DocumentID  
       
     })
     const result = await dataentry.save()
@@ -234,5 +236,44 @@ router.get('/FindAllRecord', async (req, res) => {
   } catch(error) {
       res.status(404).json({message: error.message});
   }
+});
+
+
+//Upload File
+    // const storage = multer.diskStorage({
+    //   destination: (req, file, cb) => {
+    //     cb(null, 'uploads/');
+    //   },
+    //   filename: (req, file, cb) => {
+    //     cb(null, Date.now() + '-' + file.originalname);
+    //   },
+    // });
+    const storage = multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, 'Uploads/');
+      },
+      filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+      },
+    });
+const upload = multer({ storage });
+
+
+router.post('/upload', upload.single('file'),async (req, res) => {
+  console.log(req.file); 
+  // if (!req.file) {
+  //   return res.status(400).json({ error: 'No file uploaded' });
+  // }
+  // res.json({ message: 'File uploaded successfully', filename: req.file.filename });
+  const { filename, path } = req.file;
+
+  // Save file metadata to MongoDB
+  const file = new fileUpload({ filename, path });
+  const result = await file.save();
+  res.send({
+    message: "File uploaded successfully!",
+    user: result
+  })
+ // res.send('File uploaded successfully!');
 });
 module.exports = router;

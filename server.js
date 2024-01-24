@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
 var route = require('./route/routes');
+
 const app = express()
 
 
@@ -30,7 +31,16 @@ mongoose.connect("mongodb://localhost:27017/RMS")
     });
 
 
-
+    // const storage = multer.diskStorage({
+    //   destination: (req, file, cb) => {
+    //     cb(null, 'uploads/');
+    //   },
+    //   filename: (req, file, cb) => {
+    //     cb(null, Date.now() + '-' + file.originalname);
+    //   },
+    // });
+    
+    // const upload = multer({ storage });
 
 //app.use(cors());
 
