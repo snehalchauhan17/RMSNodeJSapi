@@ -1,1 +1,3 @@
 *.git/index.lock
+.package.json
+.package-lock.json
