@@ -228,10 +228,14 @@ router.get('/FindRecordbyID', async (req, res) => {
 });
 
 
+
+
 // Retrieve all users from the database.
-router.get('/FindAllRecord', async (req, res) => {
+router.get('/RecordList', async (req, res) => {
+
   try {
       const user = await DataEntry.find();
+      console.log(user)
       res.status(200).json(user);
   } catch(error) {
       res.status(404).json({message: error.message});
