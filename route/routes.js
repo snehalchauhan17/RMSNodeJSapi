@@ -12,7 +12,7 @@ router.post('/MUserMaster', async (req, res) => {
   let name = req.body.name
   let username = req.body.username
   let password = req.body.password
-  console.log(password)
+
   const salt = await bcrypt.genSalt(10)
   const hashedPassword = await bcrypt.hash(password, salt)
 
@@ -52,8 +52,7 @@ router.post('/MUserMaster', async (req, res) => {
 router.post("/login", async (req, res) => {
   let pwd = req.body.password
   let username = req.body.username
-  console.log(pwd);
-  console.log(username);
+
   const user = await User.findOne({ username: req.body.username })
   if (!user) {
     return res.status(404).send({
@@ -66,8 +65,7 @@ router.post("/login", async (req, res) => {
     })
   }
   const token = jwt.sign({ _id: user._id }, "secret")
-  console.log(user._id)
-  console.log(token);
+
   const result = await user.save()
 
   res.cookie("jwt", token, {
@@ -158,7 +156,7 @@ router.post('/InsertRecord', async (req, res) => {
       
     })
     const result = await dataentry.save()
-    console.log(result)
+
 
     res.json({
       message: "success",
@@ -200,7 +198,7 @@ router.post('/InsertRecord', async (req, res) => {
   router.delete('/DeleteRecord', async (req, res) => {
     try {
         const { _id } = req.body;
-console.log(_id)
+
         if (!_id) {
             return res.status(400).json({ message: 'Missing _id field in request body' });
         }
@@ -220,16 +218,32 @@ console.log(_id)
 
 
 //Data Select
-router.get('/FindRecordbyID', async (req, res) => {
-  try {
-    console.log(req.params._id)
-      const user = await DataEntry.findById(req.params._id);
-      res.status(200).json(user);
-  } catch(error) {
-      res.status(404).json({ message: error.message});
-  }
-});
+// router.get('/FindRecordbyID', async (req, res) => {
+//   try {
 
+//       const user = await DataEntry.findById(req.params._id);
+//       res.status(200).json(user);
+//   } catch(error) {
+//       res.status(404).json({ message: error.message});
+//   }
+// });
+
+router.get('/FindRecordbyID/:_id', async (req, res) => {
+ // var _id = req.params._id
+ console.log(req.params._id)
+  let user = ''
+  try {
+    const user = await DataEntry.findById(req.params._id);
+      if (user == null) { // checking for null values
+          return res.status(404).json({ message: 'Cannot find programmer' })
+      }
+  } catch (err) {
+      return res.status(500).json({ message: err.message })
+  }
+
+  res.send(user) //sending the response
+
+})
 
 
 
@@ -267,7 +281,7 @@ const upload = multer({ storage });
 
 
 router.post('/upload', upload.single('file'),async (req, res) => {
-  console.log(req.file); 
+
   // if (!req.file) {
   //   return res.status(400).json({ error: 'No file uploaded' });
   // }

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 const dataentryschema =mongoose.Schema(
     {
-    // Id:             { type: String, unique: true, required:true },    
+    _id:             { type: String, unique: true, required:true },    
     Year:           	{ type: String, required: true },
     Branch:         	{ type: String, required:true  },
     Category:       	{ type: String },

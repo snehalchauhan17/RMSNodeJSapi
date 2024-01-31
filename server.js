@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
 var route = require('./route/routes');
-
+const multer = require('multer')
 const app = express()
 
 
@@ -16,10 +16,15 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(cookieParser())
-
+app.use(express.static('public'))
+app.use(express.urlencoded({extended:false}))
+app.use('view engine','ejs')
 app.use(express.json());
 app.use("/api",route);
-mongoose.connect("mongodb://localhost:27017/RMS")
+mongoose.connect("mongodb://localhost:27017/RMS",{
+  useNewUrlParser:true,
+  useUnifiedTopology:true
+})
 .then(()=>{
           console.log('connect to MongoDB')
         app.listen(3001, ()=> {
