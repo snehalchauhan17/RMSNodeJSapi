@@ -197,23 +197,26 @@ router.post('/InsertRecord', async (req, res) => {
 
 
   //Data Delete
-    router.delete('/DeleteRecord', async (req, res) => {
-    await DataEntry.findByIdAndRemove(req.body._id).then(data => {
-        if (!data) {
-          res.status(404).send({
-            message: `User not found.`
-          });
-        } else {
-          res.send({
-            message: "User deleted successfully!"
-          });
+  router.delete('/DeleteRecord', async (req, res) => {
+    try {
+        const { _id } = req.body;
+console.log(_id)
+        if (!_id) {
+            return res.status(400).json({ message: 'Missing _id field in request body' });
         }
-    }).catch(err => {
-        res.status(500).send({
-          message: err.message
-        });
-    });
+
+        const deletedRecord = await DataEntry.findByIdAndRemove(_id);
+
+        if (!deletedRecord) {
+            return res.status(404).json({ message: 'Record not found' });
+        }
+
+        return res.json({ message: 'Record deleted successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
 });
+
 
 
 //Data Select
@@ -235,7 +238,7 @@ router.get('/RecordList', async (req, res) => {
 
   try {
       const user = await DataEntry.find();
-      console.log(user)
+-
       res.status(200).json(user);
   } catch(error) {
       res.status(404).json({message: error.message});
