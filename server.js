@@ -18,13 +18,10 @@ app.use(cors(corsOptions));
 app.use(cookieParser())
 app.use(express.static('public'))
 app.use(express.urlencoded({extended:false}))
-app.use('view engine','ejs')
+// app.use('view engine','ejs')
 app.use(express.json());
 app.use("/api",route);
-mongoose.connect("mongodb://localhost:27017/RMS",{
-  useNewUrlParser:true,
-  useUnifiedTopology:true
-})
+mongoose.connect("mongodb://localhost:27017/RMS")
 .then(()=>{
           console.log('connect to MongoDB')
         app.listen(3001, ()=> {

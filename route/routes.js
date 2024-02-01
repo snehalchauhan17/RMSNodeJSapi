@@ -5,8 +5,12 @@ const jwt = require('jsonwebtoken')
 const User = require('../src/UserMaster/MUserMasterModel')
 const DataEntry = require('../src/DataEntry/DataEntryModel')
 const router = Router()
-const multer = require('multer');
 const fileUpload = require('../src/DataEntry/FileUpload')
+
+const multer = require('multer');
+const docUpload = require('../src/docUpload/docUploadModel');
+const storage =multer.memoryStorage()
+const upload = multer({storage:storage})
 
 router.post('/MUserMaster', async (req, res) => {
   let name = req.body.name
@@ -130,7 +134,8 @@ router.post('/InsertRecord', async (req, res) => {
     let PostPage = req.body.PostPage
     let TotalPage = req.body.TotalPage	  
     let DocumentName = req.body.DocumentName
-    // let DocumentID   = req.body.DocumentID  
+    let documentId = ''
+   
 
     const dataentry = new DataEntry({
 
@@ -152,18 +157,19 @@ router.post('/InsertRecord', async (req, res) => {
       PostPage 	: PostPage 	  ,
       TotalPage   : TotalPage   ,
       DocumentName: DocumentName,
-      // DocumentID  : DocumentID  
+      documentId:documentId
+ 
       
     })
     const result = await dataentry.save()
-
+    console.log(result);
+console.log(dataentry.documentId)
 
     res.json({
       message: "success",
       dataentry: result
     });
   });
-
 
 
   //Data Update
@@ -235,7 +241,7 @@ router.get('/FindRecordbyID/:_id', async (req, res) => {
   try {
     const user = await DataEntry.findById(req.params._id);
       if (user == null) { // checking for null values
-          return res.status(404).json({ message: 'Cannot find programmer' })
+          return res.status(404).json({ message: 'Cannot find Record' })
       }
   } catch (err) {
       return res.status(500).json({ message: err.message })
@@ -260,41 +266,69 @@ router.get('/RecordList', async (req, res) => {
 });
 
 
-//Upload File
-    // const storage = multer.diskStorage({
-    //   destination: (req, file, cb) => {
-    //     cb(null, 'uploads/');
-    //   },
-    //   filename: (req, file, cb) => {
-    //     cb(null, Date.now() + '-' + file.originalname);
-    //   },
-    // });
-    const storage = multer.diskStorage({
-      destination: (req, file, cb) => {
-        cb(null, 'Uploads/');
-      },
-      filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
-      },
-    });
-const upload = multer({ storage });
+
+// router.get('/files/:filename', async (req, res) => {
+
+//   try {
+//       const file = await docUpload.find();
+// -
+//       res.status(200).json(file);
+//   } catch(error) {
+//       res.status(404).json({message: error.message});
+//   }
+// });
 
 
-router.post('/upload', upload.single('file'),async (req, res) => {
+// app.get('/api/files/:_id', (req, res) => {
+//   const _id = req.params._id;
+//   const filePath = path.join(__dirname, 'uploads', _id); // Adjust the path as per your file storage setup
 
-  // if (!req.file) {
-  //   return res.status(400).json({ error: 'No file uploaded' });
-  // }
-  // res.json({ message: 'File uploaded successfully', filename: req.file.filename });
-  const { filename, path } = req.file;
+//   // Check if the file exists
+//   fs.access(filePath, fs.constants.F_OK, (err) => {
+//       if (err) {
+//           console.error('File does not exist:', err);
+//           return res.status(404).send('File not found');
+//       }
 
-  // Save file metadata to MongoDB
-  const file = new fileUpload({ filename, path });
-  const result = await file.save();
-  res.send({
-    message: "File uploaded successfully!",
-    user: result
-  })
- // res.send('File uploaded successfully!');
+//       // Stream the file back to the client
+//       const fileStream = fs.createReadStream(filePath);
+//       fileStream.pipe(res);
+//   });
+// });
+router.get('/DocList', async (req, res) => {
+
+  try {
+      const user = await docUpload.find();
+-
+      res.status(200).json(user);
+  } catch(error) {
+      res.status(404).json({message: error.message});
+  }
+});
+
+router.post('/upload', upload.single('file'), async (req, res) => {
+  if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  // Assuming docUpload is your Mongoose model for storing documents
+  const newDoc = new docUpload({
+      name: req.file.originalname,
+      doc: {
+          data: req.file.buffer,
+          contentType: req.file.mimetype
+      }
+  });
+
+  try {
+      // Save the document
+      const savedDoc = await newDoc.save();
+      res.status(201).json({
+          message: 'File uploaded successfully!',
+          document: savedDoc
+      });
+  } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+  }
 });
 module.exports = router;

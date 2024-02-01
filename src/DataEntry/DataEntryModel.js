@@ -1,7 +1,8 @@
 const mongoose = require('mongoose')
+const docUpload =require('../docUpload/docUploadModel')
 const dataentryschema =mongoose.Schema(
     {
-    _id:             { type: String, unique: true, required:true },    
+ //   _id:             { type: String, unique: true, required:true },    
     Year:           	{ type: String, required: true },
     Branch:         	{ type: String, required:true  },
     Category:       	{ type: String },
@@ -19,7 +20,8 @@ const dataentryschema =mongoose.Schema(
     PostPage 	:       { type: String },
     TotalPage  :        { type: String },
     DocumentName: 		{ type: String },
- //   DocumentID :  		{ type: String },
+    documentId: { type: mongoose.Schema.Types.ObjectId, ref: docUpload }
+
     },
     {
         timestamps : true
