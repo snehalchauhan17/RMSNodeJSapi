@@ -96,15 +96,15 @@ console.log(dataentry.documentId)
 
 
   //Data Delete
-  router.delete('/DeleteRecord', async (req, res) => {
+  router.delete('/DeleteRecord/:_id', async (req, res) => {
     try {
-        const { _id } = req.body;
+        var _id = req.params._id
 
         if (!_id) {
             return res.status(400).json({ message: 'Missing _id field in request body' });
         }
 
-        const deletedRecord = await DataEntry.findByIdAndRemove(_id);
+        const deletedRecord = await DataEntry.findByIdAndDelete(_id);
 
         if (!deletedRecord) {
             return res.status(404).json({ message: 'Record not found' });
