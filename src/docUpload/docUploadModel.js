@@ -1,5 +1,6 @@
 //const mongoose = require("../database");
 
+const { BSON } = require('mongodb');
 const mongoose = require('mongoose');
 
 var fileSchema = new mongoose.Schema({
@@ -9,7 +10,11 @@ var fileSchema = new mongoose.Schema({
 	{
 		data: Buffer,
 		contentType: String
-	}
+	},
+	// DocId:{type:String, unique:true}
+	stream:String,
+	size :String,
+	path:String
 });
 
 //Image is a model which has a schema imageSchema

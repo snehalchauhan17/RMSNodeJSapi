@@ -4,9 +4,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
 var route = require('./route/routes');
-const multer = require('multer')
+//const multer = require('multer')
 const app = express()
-
+const DataEntry = require('./src/DataEntry/DataEntryController'); 
+const docUpload = require('./src/docUpload/docUploadController'); 
 
 const corsOptions = {
   origin: 'http://localhost:4200', // Replace with the origin of your Angular app
@@ -20,7 +21,7 @@ app.use(express.static('public'))
 app.use(express.urlencoded({extended:false}))
 // app.use('view engine','ejs')
 app.use(express.json());
-app.use("/api",route);
+
 mongoose.connect("mongodb://localhost:27017/RMS")
 .then(()=>{
           console.log('connect to MongoDB')
@@ -33,25 +34,10 @@ mongoose.connect("mongodb://localhost:27017/RMS")
     });
 
 
-    // const storage = multer.diskStorage({
-    //   destination: (req, file, cb) => {
-    //     cb(null, 'uploads/');
-    //   },
-    //   filename: (req, file, cb) => {
-    //     cb(null, Date.now() + '-' + file.originalname);
-    //   },
-    // });
-    
-    // const upload = multer({ storage });
-
-//app.use(cors());
-
 mongoose.set('strictQuery', false);
 app.use("/api",route)
+app.use("/api",DataEntry)
+app.use("/api",docUpload)
 app.options('*', cors()); 
-
-//mongoose.connect("mongodb://localhost:27017/RMS",{useNewUrlParser: true,  useUnifiedTopology: true },)
-
-   // 
 
 
