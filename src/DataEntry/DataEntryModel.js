@@ -1,10 +1,9 @@
 const mongoose = require('mongoose')
-const docUpload =require('../docUpload/docUploadModel');
+//const docUpload =require('../docUpload/docUploadModel');
 const { ObjectId } = require('mongodb');
 const dataentryschema =mongoose.Schema(
     {
- //   _id:             { type: String, unique: true, required:true },  
-// Rid  : { type: Int32Array, unique: true, required:true, },  
+
     Year:           	{ type: String, required: true },
     Branch:         	{ type: String, required:true  },
     Category:       	{ type: String },

@@ -1,7 +1,6 @@
 
 const { Router } = require('express')
 const { ObjectId } = require('mongodb');
-
 const docUpload = require('../docUpload/docUploadModel')
 const router = Router()
 const multer = require('multer');
@@ -38,67 +37,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     }
 });
 
-
-
-// router.get('/ViewDoc', async (req, res) => {
-//     const recordId = req.query._id; // Assuming the recordId is passed as a query parameter
-
-//     try {
-//         const db = await connectToDatabase();
-
-//         const result = await db.collection('DataEntry').aggregate([
-//             {
-//                 $match: {
-//                     recordId: ObjectId(recordId) // Assuming recordId is stored as ObjectId in MongoDB
-//                 }
-//             },
-//             {
-//                 $lookup: {
-//                     from: 'docupload',
-//                     localField: 'documentId',
-//                     foreignField: '_id',
-//                     as: 'documents'
-//                 }
-//             }
-//         ]).toArray();
-
-//         res.json(result);
-//     } catch (error) {
-//         console.error('Error executing aggregation:', error);
-//         res.status(500).json({ error: 'Internal server error' });
-//     }
-// });
-
-
-// router.get('/DocList', async (req, res) => {
-//     const recordId = req.query._id; // Assuming the recordId is passed as a query parameter
-
-//     try {
-//         const db = await connectToDatabase();
-
-//         const result = await db.collection('DataEntry').aggregate([
-//             {
-//                 $match: {
-//                     recordId: ObjectId(recordId) // Assuming recordId is stored as ObjectId in MongoDB
-//                 }
-//             },
-//             {
-//                 $lookup: {
-//                     from: 'docupload',
-//                     localField: 'documentId',
-//                     foreignField: 'documentId',
-//                     as: 'documents'
-//                 }
-//             }
-//         ]).toArray();
-
-//         res.json(result);
-//     } catch (error) {
-//         console.error('Error executing aggregation:', error);
-//         res.status(500).json({ error: 'Internal server error' });
-//     }
-// });
-
 // Define another API endpoint to fetch and view documents
 router.get('/ViewDocument/:_id', async (req, res) => {
     const documentId = req.params._id; // Use params to get the documentId from URL parameters
@@ -106,7 +44,7 @@ router.get('/ViewDocument/:_id', async (req, res) => {
     try {
         // Fetch the document from the database by documentId
         const document = await docUpload.findOne({ _id: new ObjectId(documentId) });
-console.log(document);
+
         if (!document) {
             return res.status(404).json({ error: 'Document not found' });
         }

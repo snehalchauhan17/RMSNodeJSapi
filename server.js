@@ -8,6 +8,8 @@ var route = require('./route/routes');
 const app = express()
 const DataEntry = require('./src/DataEntry/DataEntryController'); 
 const docUpload = require('./src/docUpload/docUploadController'); 
+const UserMaster = require('./src/UserMaster/UserMasterController');
+const branchmaster = require('./src/BranchMaster/BranchMasterController');
 
 const corsOptions = {
   origin: 'http://localhost:4200', // Replace with the origin of your Angular app
@@ -38,6 +40,8 @@ mongoose.set('strictQuery', false);
 app.use("/api",route)
 app.use("/api",DataEntry)
 app.use("/api",docUpload)
+app.use("/api",UserMaster)
+app.use("/api",branchmaster)
 app.options('*', cors()); 
 
 
