@@ -1,11 +1,11 @@
 const { Router } = require('express')
 const DataEntry = require('../DataEntry/DataEntryModel')
 const router = Router()
-const BranchMaster =require('../BranchMaster/BranchMasterModel')
+const BranchMaster = require('../BranchMaster/BranchMasterModel')
 
 //Data Enter
 router.post('/InsertRecord', async (req, res) => {
-    //  let Id			     = req.body.Id			             
+
     let Year = req.body.Year
     let Branch = req.body.Branch
     let Category = req.body.Category
@@ -25,11 +25,8 @@ router.post('/InsertRecord', async (req, res) => {
     let DocumentName = req.body.DocumentName
     let documentId = req.body.documentId
 
-
-
     const dataentry = new DataEntry({
 
-        // Id			    : Id		,	
         Year: Year,
         Branch: Branch,
         Category: Category,
@@ -49,12 +46,9 @@ router.post('/InsertRecord', async (req, res) => {
         DocumentName: DocumentName,
         documentId: documentId
 
-
     })
     const result = await dataentry.save()
-    console.log(result);
-    console.log(dataentry.documentId)
-
+console.log(result)
     res.json({
         message: "success",
         dataentry: result
@@ -62,30 +56,35 @@ router.post('/InsertRecord', async (req, res) => {
 });
 
 //Data Update
-router.put('/UpdateRecord', async (req, res) => {
-    if (!req.body) {
-        res.status(400).send({
-            message: "Data to update can not be empty!"
+router.put('/UpdateRecord/:_id', async (req, res) => {
+    try {
+                // Check if the request body is empty
+                if (!req.body) {
+                    return res.status(400).json({
+                        message: "Data to update cannot be empty!"
+                    });
+                }
+
+       
+        const _id = req.params._id;
+        const updatedData = req.body;
+
+        // Update the record using Mongoose
+        const updatedRecord = await DataEntry.findByIdAndUpdate(_id, updatedData, { new: true });
+
+        if (!updatedRecord) {
+            return res.status(404).json({ message: "Record not found." });
+        }
+
+        res.json({ message: "Record updated successfully.", data: updatedRecord });
+
+    } catch (err) {
+        // Handle any errors that occur during the update process
+        res.status(500).json({
+            message: err.message || "An error occurred while updating the record."
         });
     }
-    const id = req.body._id;
-
-    await DataEntry.findByIdAndUpdate(id, req.body).then(data => {
-
-        if (!data) {
-            res.status(404).send({
-                message: `User not found.`
-            });
-        } else {
-            res.send({ message: "User updated successfully." })
-        }
-    }).catch(err => {
-        res.status(500).send({
-            message: err.message
-        });
-    });
 });
-
 
 //Data Delete
 router.delete('/DeleteRecord/:_id', async (req, res) => {
@@ -103,30 +102,30 @@ router.delete('/DeleteRecord/:_id', async (req, res) => {
         }
 
         return res.json({ message: 'Record deleted successfully' });
-    } catch (error) {
+    }
+    catch (error) {
         return res.status(500).json({ message: error.message });
     }
 });
 
-
 router.get('/FindRecordbyID/:_id', async (req, res) => {
-    // var _id = req.params._id
+
     console.log(req.params._id)
     let user = ''
     try {
         const user = await DataEntry.findById(req.params._id);
+        console.log('User is:', user)
         if (user == null) { // checking for null values
             return res.status(404).json({ message: 'Cannot find Record' })
         }
+        res.status(200).json(user);
     } catch (err) {
         return res.status(500).json({ message: err.message })
     }
 
-    res.send(user) //sending the response
+    // res.send(user) //sending the response
 
 })
-
-
 
 // Retrieve all users from the database.
 router.get('/RecordList', async (req, res) => {
@@ -140,30 +139,21 @@ router.get('/RecordList', async (req, res) => {
     }
 });
 
-// Retrieve all users from the database.
-// router.get('/BranchList', async (req, res) => {
-
-//     try {
-//         // Query BranchMaster collection using Mongoose model
-//         const branches = await BranchMaster.find({}).limit(10); // Fetch top 50 records
-//         console.log(branches);
-//         res.status(200).json(branches);
-//     } catch (error) {
-//         res.status(500).json({ message: 'Internal server error' });
-//     }
-// });
-
-// var MongoClient = require('mongodb').MongoClient;
-// var url = "mongodb://localhost:27017/college";
-
-// MongoClient.connect(url, function(err, db) {
-//   if (err) throw err;
-//   db.collection("BranchMaster").find({}).toArray(function(err, result) {
-//     if (err) throw err;
-//     console.log(result);
-//     db.close();
-//   });
-// });
-
 
 module.exports = router;
+
+ //         const id = req.body._id; // Assuming _id is provided in the request body
+        //         console.log(id)
+        //         // Find and update the record by its ID
+        //         const updatedRecord = await DataEntry.findByIdAndUpdate(id, req.body);
+        // console.log(updatedRecord)
+        //         // If no record found, return a 404 status
+        //         if (!updatedRecord) {
+        //             return res.status(404).json({
+        //                 message: `Record not found.`
+        //             });
+        //         }
+
+        //         // Send a success message if the record was updated successfully
+        //         res.status(200).json({ message: "Record updated successfully." });
+        

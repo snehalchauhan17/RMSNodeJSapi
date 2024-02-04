@@ -35,7 +35,6 @@ const dataentryschema =mongoose.Schema(
 
 )
 
-
 const DataEntry =mongoose.model('DataEntry',dataentryschema);
 
 module.exports =DataEntry;
