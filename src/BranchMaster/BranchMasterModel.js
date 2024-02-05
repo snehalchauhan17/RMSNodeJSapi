@@ -1,23 +1,23 @@
-const mongoose = require('mongoose')
-//const docUpload =require('../docUpload/docUploadModel');
-const { ObjectId } = require('mongodb');
-const branchMasterSchema =mongoose.Schema(
-    {
+// const mongoose = require('mongoose')
+// //const docUpload =require('../docUpload/docUploadModel');
+// const { ObjectId } = require('mongodb');
+// const branchMasterSchema =mongoose.Schema(
+//     {
 
-    oid:           	{ type: String },
-    Branch:         	{ type: String },
-PWD:{type:String}
+//     oid:           	{ type: String },
+//     Branch:         	{ type: String },
+// PWD:{type:String}
    
 
 
-    },
-    {
-        timestamps : true
-    }
+//     },
+//     {
+//         timestamps : true
+//     }
 
-)
+// )
 
 
-const BranchMaster = mongoose.model('BranchMaster', branchMasterSchema);
+// const BranchMaster = mongoose.model('BranchMaster', branchMasterSchema);
 
-module.exports =BranchMaster;
+// module.exports =BranchMaster;
