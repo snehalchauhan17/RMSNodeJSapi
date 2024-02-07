@@ -23,8 +23,17 @@ app.use(express.static('public'))
 app.use(express.urlencoded({extended:false}))
 // app.use('view engine','ejs')
 app.use(express.json());
+//mongodb://sa:sa123@10.154.2.131:27017/
+//mongoose.connect("mongodb://localhost:27017/RMS")
+const mongoURI = 'mongodb://sa:sa123@10.154.2.131:27017/';
 
-mongoose.connect("mongodb://localhost:27017/RMS")
+// Options to pass to the MongoDB driver during connection setup
+const options = {
+  dbName: 'RMS' // specify the database name here
+};
+
+//mongoose.connect("mongodb://sa:sa123@10.154.2.131:27017/RMS")
+mongoose.connect(mongoURI, options)
 .then(()=>{
           console.log('connect to MongoDB')
         app.listen(3001, ()=> {
