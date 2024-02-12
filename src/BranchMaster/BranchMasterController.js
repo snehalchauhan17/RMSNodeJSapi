@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const MongoClient = require('mongodb').MongoClient;
+const DataEntry = require('../DataEntry/DataEntryModel')
 const router = Router();
 const connectionString = "mongodb://sa:sa123@10.154.2.131:27017/";
 const dbName = "RMS";
@@ -29,35 +30,72 @@ router.get("/BranchList", async (req, res) => {
   }
 });
 
-router.get("/searchRecordList", async (req, res) => {
-  try {
-      const db = client.db(RMS);
-      const DataEntry = 'DataEntry'; // Collection name
+// router.get("/searchRecordList", async (req, res) => {
+//   try {
+//     const db =client.db(dbName); 
+//     // Extract search parameters from the query string
+//     const { year, branch, category, types, subject, name, address, village, taluka, orderName, cupBoardNo, partitionNo, fileNo } = req.query;
 
-      // Extract search parameters from the query string
-      const { year, branch, category, types, subject, name, address, village, taluka, orderName, cupBoardNo, partitionNo, fileNo } = req.query;
+//     // Construct the query based on the received parameters
+//     const query = {};
 
-      // Construct the query based on the received parameters
-      const query = {};
+//     if (year) {
+//       query.Year = { $regex: new RegExp(year, 'i') };
+//     }
+//     if (branch) {
+//       query.Branch = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (category) {
+//       query.Category = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (types) {
+//       query.Types = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (subject) {
+//       query.Subject = { $regex: new RegExp(branch, 'i') };
+//     }
 
-      if (year) {
-          query.Year = { $regex: new RegExp(year, 'i') };
-      }
-      if (branch) {
-          query.Branch = { $regex: new RegExp(branch, 'i') };
-      }
-      // Add conditions for other fields as needed
+//     if (name) {
+//       query.Name = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (address) {
+//       query.Address = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (village) {
+//       query.Village = { $regex: new RegExp(branch, 'i') };
+//     }
 
-      // Perform the search
-      const collection = db.collection(DataEntry);
-      const cursor = collection.find(query);
-      const documents = await cursor.toArray();
-      res.json(documents);
-  } catch (error) {
-      console.error('Error Occurred:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+//     if (taluka) {
+//       query.Taluka = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (orderName) {
+//       query.OrderName = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (cupBoardNo) {
+//       query.CupBoardNo = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (partitionNo) {
+//       query.PartitionNo = { $regex: new RegExp(branch, 'i') };
+//     }
+//     if (fileNo) {
+//       query.FileNo = { $regex: new RegExp(branch, 'i') };
+//     }
+
+//     // Add conditions for other fields as needed
+
+//     //Perform the search
+//     // const collection = db.collection("DataEntry"); // Get the collection
+
+//     // const cursor = collection.find(query);
+//     // const documents = await cursor.toArray();
+//      const records = await DataEntry.find(query);
+// console.log(records);
+//     res.json(records);
+//   } catch (error) {
+//     console.error('Error Occurred:', error);
+//     res.status(500).json({ error: 'Internal Server Error' });
+//   }
+// });
 
 // router.get("/searchRecordList", async (req, res) => {
 //   try {
