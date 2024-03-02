@@ -198,9 +198,9 @@ router.get("/searchRecordList", async (req, res) => {
   
       // const cursor = collection.find(query);
       // const documents = await cursor.toArray();
-      console.log(query);
+      console.log(query,"query");
        const records = await DataEntry.find(query);
-  console.log(records);
+  console.log(records,"records");
       res.json(records);
     } catch (error) {
       console.error('Error Occurred:', error);
