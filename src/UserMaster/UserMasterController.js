@@ -13,7 +13,10 @@ router.post('/MUserMaster', async (req, res) => {
     let name = req.body.name
     let username = req.body.username
     let password = req.body.password
-  
+    let dcode = req.body.dcode
+    let officeId = req.body.officeId
+    let branchId = req.body.branchId
+
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(password, salt)
   
@@ -28,7 +31,10 @@ router.post('/MUserMaster', async (req, res) => {
       const user = new User({
         name: name,
         username: username,
-        password: hashedPassword
+        password: hashedPassword,
+        dcode: dcode,
+        officeId: officeId,
+        branchId: branchId
       })
       const result = await user.save()
   
@@ -85,6 +91,25 @@ router.post('/MUserMaster', async (req, res) => {
     res.send({ message: "success" })
   })
   
+  router.post('/ChangePassword', async (req, res) => {
+    const { username, oldPassword, newPassword } = req.body;
+  
+    try {
+      const user = await User.findOne({ username });
+  
+      if (!user || user.password !== oldPassword) {
+        return res.status(400).json({ message: 'Invalid username or password' });
+      }
+  
+      user.password = newPassword;
+      await user.save();
+  
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
   
   
   module.exports = router;

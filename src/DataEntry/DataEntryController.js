@@ -115,7 +115,8 @@ router.get('/FindRecordbyID/:_id', async (req, res) => {
     try {
         const user = await DataEntry.findById(req.params._id);
         console.log('User is:', user)
-        if (user == null) { // checking for null values
+        if (user == null) 
+        { // checking for null values
             return res.status(404).json({ message: 'Cannot find Record' })
         }
         res.status(200).json(user);
@@ -142,65 +143,57 @@ router.get('/RecordList', async (req, res) => {
 
 router.get("/searchRecordList", async (req, res) => {
     try {
+      console.log(req.query,"Requested Query");
       //const db =client.db(dbName); 
       // Extract search parameters from the query string
-      const { year, branch, category, types, subject, name, address, village, taluka, orderName, cupBoardNo, partitionNo, fileNo } = req.query;
-  
-      // Construct the query based on the received parameters
+      const { Year, Branch, Category, Types, Subject, Name, Address, Village, Taluka, OrderName, CupBoardNo, PartitionNo, FileNo } = req.query;
+
       const query = {};
-  
-      if (year) {
-        query.Year = { $regex: new RegExp(year, 'i') };
+
+      if (Year) {
+          query.Year = { $regex: new RegExp(Year, 'i') };
       }
-      if (branch) {
-        query.Branch = { $regex: new RegExp(branch, 'i') };
+      if (Branch) {
+          query.Branch = { $regex: new RegExp(Branch, 'i') };
       }
-      if (category) {
-        query.Category = { $regex: new RegExp(branch, 'i') };
+      if (Category) {
+          query.Category = { $regex: new RegExp(Category, 'i') };
       }
-      if (types) {
-        query.Types = { $regex: new RegExp(branch, 'i') };
+      if (Types) {
+          query.Types = { $regex: new RegExp(Types, 'i') };
       }
-      if (subject) {
-        query.Subject = { $regex: new RegExp(branch, 'i') };
+      if (Subject) {
+          query.Subject = { $regex: new RegExp(Subject, 'i') };
       }
-  
-      if (name) {
-        query.Name = { $regex: new RegExp(branch, 'i') };
+      if (Name) {
+          query.Name = { $regex: new RegExp(Name, 'i') };
       }
-      if (address) {
-        query.Address = { $regex: new RegExp(branch, 'i') };
+      if (Address) {
+          query.Address = { $regex: new RegExp(Address, 'i') };
       }
-      if (village) {
-        query.Village = { $regex: new RegExp(branch, 'i') };
+      if (Village) {
+          query.Village = { $regex: new RegExp(Village, 'i') };
       }
-  
-      if (taluka) {
-        query.Taluka = { $regex: new RegExp(branch, 'i') };
+      if (Taluka) {
+          query.Taluka = { $regex: new RegExp(Taluka, 'i') };
       }
-      if (orderName) {
-        query.OrderName = { $regex: new RegExp(branch, 'i') };
+      if (OrderName) {
+          query.OrderName = { $regex: new RegExp(OrderName, 'i') };
       }
-      if (cupBoardNo) {
-        query.CupBoardNo = { $regex: new RegExp(branch, 'i') };
+      if (CupBoardNo) {
+          query.CupBoardNo = { $regex: new RegExp(CupBoardNo, 'i') };
       }
-      if (partitionNo) {
-        query.PartitionNo = { $regex: new RegExp(branch, 'i') };
+      if (PartitionNo) {
+          query.PartitionNo = { $regex: new RegExp(PartitionNo, 'i') };
       }
-      if (fileNo) {
-        query.FileNo = { $regex: new RegExp(branch, 'i') };
+      if (FileNo) {
+          query.FileNo = { $regex: new RegExp(FileNo, 'i') };
       }
-  
-      // Add conditions for other fields as needed
-  
-      //Perform the search
-      // const collection = db.collection("DataEntry"); // Get the collection
-  
-      // const cursor = collection.find(query);
-      // const documents = await cursor.toArray();
-      console.log(query,"query");
-       const records = await DataEntry.find(query);
-  console.log(records,"records");
+
+      console.log(query.Year,"query_Year");
+      console.log(query.Category,"query_Cat");
+      const records = await DataEntry.find(query);
+      console.log(records);
       res.json(records);
     } catch (error) {
       console.error('Error Occurred:', error);
@@ -209,18 +202,3 @@ router.get("/searchRecordList", async (req, res) => {
   });
 module.exports = router;
 
- //         const id = req.body._id; // Assuming _id is provided in the request body
-        //         console.log(id)
-        //         // Find and update the record by its ID
-        //         const updatedRecord = await DataEntry.findByIdAndUpdate(id, req.body);
-        // console.log(updatedRecord)
-        //         // If no record found, return a 404 status
-        //         if (!updatedRecord) {
-        //             return res.status(404).json({
-        //                 message: `Record not found.`
-        //             });
-        //         }
-
-        //         // Send a success message if the record was updated successfully
-        //         res.status(200).json({ message: "Record updated successfully." });
-        

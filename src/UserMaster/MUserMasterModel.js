@@ -14,8 +14,19 @@ const musermasterSchema =mongoose.Schema(
     password: {
         type: String,
         required: true
+    },
+    dcode: {
+        type: String,
+        required: true
+    },
+    officeId: {
+        type: String,
+        required: true
+    },
+    branchId: {
+        type: String,
+        required: true
     }
- 
     },
     {
         timestamps : true

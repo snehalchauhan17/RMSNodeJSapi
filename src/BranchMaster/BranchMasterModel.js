@@ -1,23 +1,18 @@
-// const mongoose = require('mongoose')
-// //const docUpload =require('../docUpload/docUploadModel');
-// const { ObjectId } = require('mongodb');
-// const branchMasterSchema = mongoose.Schema(
-//     {
+const { Double, Int32 } = require('mongodb');
+const mongoose = require('mongoose')
+const branchMasterSchema = mongoose.Schema(
+    {
 
-//         oid: { type: String },
-//         Branch: { type: String },
-//         PWD: { type: String }
+        districtId: { type: Number },
+        officeId: { type: Number },
+        BranchName: { type: String }
 
+    },
+    {
+        timestamps: true
+    }
 
+)
 
-//     },
-//     {
-//         timestamps: true
-//     }
-
-// )
-
-
-// const BranchMaster = mongoose.model('BranchMaster', branchMasterSchema);
-
-// module.exports = BranchMaster;
+const BranchMasterModel = mongoose.model('BranchMaster', branchMasterSchema);
+module.exports = BranchMasterModel;
