@@ -127,17 +127,55 @@ router.get("/DistrictList", async (req, res) => {
   }
 });
 
-router.get("/OfficeList", async (req, res) => {
+router.get("/OfficeListbyId/:did", async (req, res) => {
   try {
+    console.log('District Code (param):', req.params.did);
+
+    // Convert req.params.did to a number if dcode is a number in MongoDB
+    const dcodeValue = parseInt(req.params.did);
+
+    console.log('Converted District Code:', dcodeValue);
+
+    console.log('dcode:',req.params.did)
     const db = client.db(dbName); // Get the database instance
     const collection = db.collection("OfficeMaster"); // Get the collection
-    const results = await collection.find({}).toArray(); // Query the collection
-    res.status(200).send(results); // Send the results as the response
+    const user = await collection.find({ dcode:dcodeValue }).toArray(); // Query the collection
+    console.log('user:',user)
+ 
+
+    if (user.length === 0) { // checking for null values
+      return res.status(404).json({ message: 'Cannot find Record' })
+  }
+    res.status(200).send(user); // Send the results as the response
+    console.log('user:',user)
   } catch (error) {
     console.error('Error retrieving data:', error);
     res.status(500).send('Internal Server Error');
   }
 });
+router.get("/BranchListbyID/:idno", async (req, res) => {
+  try {
+    console.log('District Code (param):', req.params.idno);
 
+    // Convert req.params.did to a number if dcode is a number in MongoDB
+    const officeId = parseInt(req.params.idno);
+
+    console.log('Converted District Code:', officeId);
+
+    const db = client.db(dbName); // Get the database instance
+    const collection = db.collection("BranchMaster"); // Get the collection
+    const user = await collection.find({ oid:officeId }).toArray(); // Query the collection
+    console.log('user:',user)
+ 
+
+    if (user.length === 0) { // checking for null values
+      return res.status(404).json({ message: 'Cannot find Record' })
+  }
+    res.status(200).send(user); // Send the results as the response
+    console.log('user:',user)  } catch (error) {
+    console.error('Error retrieving data:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
 
 module.exports = router;

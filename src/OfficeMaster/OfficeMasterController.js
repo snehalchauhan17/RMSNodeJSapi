@@ -23,7 +23,7 @@ router.get("/BranchList", async (req, res) => {
     const db = client.db(dbName); // Get the database instance
     const collection = db.collection("BranchMaster"); // Get the collection
     const results = await collection.find({}).limit(10).toArray(); // Query the collection
-    res.status(200).send(results); // Send the results as the response
+    res.status(200).send(results); // Send the results as the response\
   } catch (error) {
     console.error('Error retrieving data:', error);
     res.status(500).send('Internal Server Error');
@@ -77,7 +77,6 @@ router.post('/InsertOffice', async (req,res) => {
             dcode : dcode,
       })
       const result = await  officeentry.save()
-      console.log(result)
       res.json({
         message: "success",
         dataentry: result
@@ -100,13 +99,11 @@ router.get('/AllOfficeList', async (req, res) => {
 router.delete('/DeleteOffice/:_id', async (req, res) => {
   try {
       var _id = req.params._id
-      console.log(_id);
       if (!_id) {
           return res.status(400).json({ message: 'Missing _id field in request body' });
       }
 
       const deletedRecord = await OfficeMastermodel.findByIdAndDelete(_id);
-      console.log(deletedRecord);
       if (!deletedRecord) {
           return res.status(404).json({ message: 'Record not found' });
       }
@@ -122,11 +119,9 @@ router.delete('/DeleteOffice/:_id', async (req, res) => {
 
 router.get('/FindOfficebyId/:_id', async (req, res) => {
 
-  console.log(req.params._id)
   let user = ''
   try {
       const user = await OfficeMastermodel.findById(req.params._id);
-      console.log('User is:', user)
       if (user == null) { // checking for null values
           return res.status(404).json({ message: 'Cannot find Record' })
       }

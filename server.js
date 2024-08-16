@@ -12,7 +12,7 @@ const UserMaster = require('./src/UserMaster/UserMasterController');
 const branchmaster = require('./src/BranchMaster/BranchMasterController');
 const officemaster = require('./src/OfficeMaster/OfficeMasterController');
 const corsOptions = {
-  origin: 'http://localhost:4200', // Replace with the origin of your Angular app
+  origin: 'http://10.154.2.172:4200', // Replace with the origin of your Angular app
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true, // enable session cookies from the browser to be sent with each request
   optionsSuccessStatus: 204,
@@ -33,17 +33,21 @@ const options = {
 };
 
 //mongoose.connect("mongodb://sa:sa123@10.154.2.131:27017/RMS")
+const port = process.env.PORT || 3000;
 mongoose.connect(mongoURI, options)
 .then(()=>{
           console.log('connect to MongoDB')
-        app.listen(3001, ()=> {
-            console.log('Node API app is running on port 3001')
+        // app.listen(3001, ()=> {
+        //     console.log('Node API app is running on port 3001')
+        // })
+        app.listen(port, '10.154.2.172', () => {
+          console.log(`Server running at http://10.154.2.172:${port}/`);
         })
-       
     }).catch((error)=>{
         console.log(error)
     });
-
+    
+   
 
 mongoose.set('strictQuery', false);
 app.use("/api",route)
