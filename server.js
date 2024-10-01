@@ -25,27 +25,44 @@ app.use(express.urlencoded({extended:false}))
 app.use(express.json());
 //mongodb://sa:sa123@10.154.2.131:27017/
 //mongoose.connect("mongodb://localhost:27017/RMS")
-const mongoURI = 'mongodb://sa:sa123@10.154.2.131:27017/';
 
-// Options to pass to the MongoDB driver during connection setup
+const mongoURI = 'mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin';
+const port = process.env.PORT || 3000;
+
 const options = {
-  dbName: 'RMS' // specify the database name here
+
+  dbName: 'RMS', // Specify the database name here
 };
 
-//mongoose.connect("mongodb://sa:sa123@10.154.2.131:27017/RMS")
-const port = process.env.PORT || 3000;
+// Connect to MongoDB
 mongoose.connect(mongoURI, options)
-.then(()=>{
-          console.log('connect to MongoDB')
-        // app.listen(3001, ()=> {
-        //     console.log('Node API app is running on port 3001')
-        // })
-        app.listen(port, '10.154.2.172', () => {
-          console.log(`Server running at http://10.154.2.172:${port}/`);
-        })
-    }).catch((error)=>{
-        console.log(error)
+  .then(() => {
+    console.log('Connected to MongoDB');
+
+    // Start the server after successful DB connection
+    app.listen(port, '10.154.2.172', () => {
+      console.log(`Server running at http://10.154.2.172:${port}/`);
     });
+  })
+  .catch(err => {
+    console.error("Error connecting to the database:", err);
+  });
+// Options to pass to the MongoDB driver during connection setup
+
+
+
+// mongoose.connect(mongoURI, options)
+// .then(()=>{
+//           console.log('connect to MongoDB')
+//         // app.listen(3001, ()=> {
+//         //     console.log('Node API app is running on port 3001')
+//         // })
+//         app.listen(port, '10.154.2.172', () => {
+//           console.log(`Server running at http://10.154.2.172:${port}/`);
+//         })
+//     }).catch((error)=>{
+//         console.log(error)
+//     });
     
    
 
