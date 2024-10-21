@@ -6,45 +6,49 @@ const BranchMaster = require('../BranchMaster/BranchMasterModel')
 //Data Enter
 router.post('/InsertRecord', async (req, res) => {
 
-    let Year = req.body.Year
-    let Branch = req.body.Branch
-    let Category = req.body.Category
-    let Types = req.body.Types
-    let Subject = req.body.Subject
-    let Name = req.body.Name
-    let Address = req.body.Address
-    let Village = req.body.Village
-    let Taluka = req.body.Taluka
-    let OrderName = req.body.OrderName
-    let CupBoardNo = req.body.CupBoardNo
-    let PartitionNo = req.body.PartitionNo
-    let FileNo = req.body.FileNo
-    let NotePage = req.body.NotePage
-    let PostPage = req.body.PostPage
-    let TotalPage = req.body.TotalPage
-    let DocumentName = req.body.DocumentName
-    let documentId = req.body.documentId
+    let Year             = req.body.Year       
+    let IssueDate        = req.body.IssueDate  
+    let Branch           = req.body.Branch     
+    let Category         = req.body.Category   
+    let Name             = req.body.Name       
+    let Address          = req.body.Address    
+    let Subject          = req.body.Subject       
+    let HukamNo          = req.body.HukamNo    
+    let HukamDate        = req.body.HukamDate  
+    let Taluka           = req.body.Taluka     
+    let Village          = req.body.Village    
+    let SurveyNo 	     = req.body.SurveyNo 	
+    let CompactorNo      = req.body.CompactorNo
+    let PotlaNo          = req.body.PotlaNo    
+    let FeristNo 	     = req.body.FeristNo 	
+    let NotePage 	     = req.body.NotePage 	
+    let PostPage 	     = req.body.PostPage 	
+    let TotalPage        = req.body.TotalPage  
+    let anyDetail        = req.body.anyDetail  
+    let documentId       = req.body.documentId 
 
     const dataentry = new DataEntry({
 
-        Year: Year,
-        Branch: Branch,
-        Category: Category,
-        Types: Types,
-        Subject: Subject,
-        Name: Name,
-        Address: Address,
-        Village: Village,
-        Taluka: Taluka,
-        OrderName: OrderName,
-        CupBoardNo: CupBoardNo,
-        PartitionNo: PartitionNo,
-        FileNo: FileNo,
-        NotePage: NotePage,
-        PostPage: PostPage,
-        TotalPage: TotalPage,
-        DocumentName: DocumentName,
-        documentId: documentId
+        Year         :Year         ,
+        IssueDate    :IssueDate    ,
+        Branch       :Branch       ,
+        Category     :Category     ,
+        Name         :Name         ,
+        Address      :Address      ,
+        Subject      :Subject      , 
+        HukamNo      :HukamNo      ,
+        HukamDate    :HukamDate    ,
+        Taluka       :Taluka       ,
+        Village      :Village      ,
+        SurveyNo 	 :SurveyNo 	   ,
+        CompactorNo  :CompactorNo  ,
+        PotlaNo      :PotlaNo      ,
+        FeristNo 	 :FeristNo 	   ,
+        NotePage 	 :NotePage 	   ,
+        PostPage 	 :PostPage 	   ,
+        TotalPage    :TotalPage    ,
+        anyDetail    :anyDetail    ,
+        documentId   :documentId   
 
     })
     const result = await dataentry.save()
@@ -146,49 +150,45 @@ router.get("/searchRecordList", async (req, res) => {
       console.log(req.query,"Requested Query");
       //const db =client.db(dbName); 
       // Extract search parameters from the query string
-      const { Year, Branch, Category, Types, Subject, Name, Address, Village, Taluka, OrderName, CupBoardNo, PartitionNo, FileNo } = req.query;
-
+      const { Year, Branch, Category, HukamNo, HukamDate, Taluka, Village, SurveyNo, Name, Subject, PotlaNo, FeristNo } = req.query;
       const query = {};
 
       if (Year) {
-          query.Year = { $regex: new RegExp(Year, 'i') };
-      }
-      if (Branch) {
-          query.Branch = { $regex: new RegExp(Branch, 'i') };
-      }
-      if (Category) {
-          query.Category = { $regex: new RegExp(Category, 'i') };
-      }
-      if (Types) {
-          query.Types = { $regex: new RegExp(Types, 'i') };
-      }
-      if (Subject) {
-          query.Subject = { $regex: new RegExp(Subject, 'i') };
-      }
-      if (Name) {
-          query.Name = { $regex: new RegExp(Name, 'i') };
-      }
-      if (Address) {
-          query.Address = { $regex: new RegExp(Address, 'i') };
-      }
-      if (Village) {
-          query.Village = { $regex: new RegExp(Village, 'i') };
-      }
+        query.Year = { $regex: new RegExp(Year, 'i') };
+    }
+    if (Branch) {
+        query.Branch = { $regex: new RegExp(Branch, 'i') };
+    }
+    if (Category) {
+        query.Category = { $regex: new RegExp(Category, 'i') };
+    }
+    if (HukamNo) {
+        query.HukamNo = { $regex: new RegExp(HukamNo, 'i') };
+    }
+     if (HukamDate) {
+        query.HukamDate = { $regex: new RegExp(HukamDate, 'i') };
+    }
       if (Taluka) {
-          query.Taluka = { $regex: new RegExp(Taluka, 'i') };
-      }
-      if (OrderName) {
-          query.OrderName = { $regex: new RegExp(OrderName, 'i') };
-      }
-      if (CupBoardNo) {
-          query.CupBoardNo = { $regex: new RegExp(CupBoardNo, 'i') };
-      }
-      if (PartitionNo) {
-          query.PartitionNo = { $regex: new RegExp(PartitionNo, 'i') };
-      }
-      if (FileNo) {
-          query.FileNo = { $regex: new RegExp(FileNo, 'i') };
-      }
+        query.Taluka = { $regex: new RegExp(Taluka, 'i') };
+    }
+     if (Village) {
+        query.Village = { $regex: new RegExp(Village, 'i') };
+    }
+    if (SurveyNo) {
+        query.SurveyNo = { $regex: new RegExp(SurveyNo, 'i') };
+    }
+    if (Name) {
+        query.Name = { $regex: new RegExp(Name, 'i') };
+    }
+   if (Subject) {
+        query.Subject = { $regex: new RegExp(Subject, 'i') };
+    }
+    if (PotlaNo) {
+        query.PotlaNo = { $regex: new RegExp(PotlaNo, 'i') };
+    }
+    if (FeristNo) {
+        query.FeristNo = { $regex: new RegExp(FeristNo, 'i') };
+    }
 
       console.log(query.Year,"query_Year");
       console.log(query.Category,"query_Cat");
