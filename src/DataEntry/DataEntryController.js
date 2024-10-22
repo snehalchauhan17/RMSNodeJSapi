@@ -2,6 +2,10 @@ const { Router } = require('express')
 const DataEntry = require('../DataEntry/DataEntryModel')
 const router = Router()
 const BranchMaster = require('../BranchMaster/BranchMasterModel')
+const PDFDocument = require('pdfkit');
+const path = require('path');
+const fs = require('fs');
+const axios = require('axios'); // Import axios for making API calls
 
 //Data Enter
 router.post('/InsertRecord', async (req, res) => {
@@ -200,5 +204,106 @@ router.get("/searchRecordList", async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
+
+
+
+  router.get("/generatepdf",async (req, res) => {
+
+         // Construct the query parameters from the request
+         const queryParams = req.query; // Directly get the query parameters
+         console.log("Search  queryParams", queryParams);
+         // Call the searchRecordList API to fetch records
+         const searchResponse = await axios.get(`http://10.154.2.172:3000/api/searchRecordList`, { params: queryParams });
+         const records = searchResponse.data;
+         
+        console.log("Search Data",searchResponse.data);
+
+ 
+    const doc = new PDFDocument();
+    let filename = 'my-document.pdf';
+    res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-type', 'application/pdf');
+
+    // Pipe the PDF into the response
+    doc.pipe(res);
+
+    // Load the Gujarati font (replace with the path to your font file)
+ //   const gujaratiFontPath = path.join(__dirname, 'fonts', 'Shruti.ttf');
+ const gujaratiFontPath = path.join(__dirname, '..', 'Font', 'Shruti.ttf');
+console.log(gujaratiFontPath);
+    doc.registerFont('GujaratiFont', gujaratiFontPath);
+
+    // Add content to the PDF using the Gujarati font
+    doc.font('GujaratiFont').fontSize(20).text('રેકોર્ડ લિસ્ટ', { align: 'center' });
+    doc.moveDown();
+    // doc.fontSize(16).text('Heading 1');
+    // doc.moveDown();
+   
+  // Define headers and corresponding fields
+  const headers = [
+    { header: 'ફાઇલનુ વર્ષ', field: 'Year' },
+    { header: 'શાખા', field: 'Branch' },
+    { header: 'વર્ગ', field: 'Category' },
+    { header: 'આખરી હુકમ નંબર', field: 'HukamNo' },
+    { header: 'હુકમ ની તારીખ', field: 'HukamDate' },
+    { header: 'તાલુકો', field: 'Taluka' },
+    { header: 'ગામ', field: 'Village' },
+    { header: 'સર્વે નંબર', field: 'SurveyNo' },
+    { header: 'અરજદાર નુ નામ', field: 'Name' },
+    { header: 'વિષય', field: 'Subject' },
+    { header: 'પોટલા નંબર', field: 'PotlaNo' },
+    { header: 'ફેરીસ્ટ નંબર', field: 'FeristNo' }
+];
+
+// Table properties
+const tableWidth =700; 
+const headerHeight = 70; // Height of the header row
+const rowHeight = 50; // Height of each regular row
+const columnWidths = [50, 50, 40, 50, 70, 50, 50, 40, 60, 50, 50, 40]; 
+const xOffset = 10; 
+
+// Draw header row
+let y = doc.y; 
+doc.fontSize(12).fillColor('black');
+
+// Draw header background and text
+headers.forEach((item, i) => {
+    const cellWidth = columnWidths[i];
+    const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
+
+    // Draw header cell with headerHeight
+    doc.rect(cellX, y, cellWidth, headerHeight).fillAndStroke('lightgray', 'black');
+
+    // Draw header text
+    doc.fillColor('black').text(item.header, cellX + 5, y + 10, { width: cellWidth - 10, align: 'center' });
+});
+
+// Draw a line under the header
+y += headerHeight; // Move down to the next row position
+doc.moveTo(xOffset, y).lineTo(xOffset + tableWidth, y).stroke();
+y += 5; // Add some space before the first data row
+
+// Loop through each record and create table rows
+records.forEach(item => {
+    doc.fontSize(10);
+    doc.fillColor('black');
+
+    headers.forEach((header, i) => {
+        const cellWidth = columnWidths[i];
+        const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
+        const cellValue = item[header.field] || '';
+
+        // Draw cell border for regular rows
+        doc.rect(cellX, y, cellWidth, rowHeight).stroke(); 
+
+        // Draw cell value
+        doc.text(cellValue, cellX + 5, y + 5, { width: cellWidth - 10, align: 'center' });
+    });
+
+    y += rowHeight; // Move down for the next row
+});
+    // Finalize the PDF and end the stream
+    doc.end();
+});
 module.exports = router;
 
