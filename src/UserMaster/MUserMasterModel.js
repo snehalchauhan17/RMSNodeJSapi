@@ -26,6 +26,10 @@ const musermasterSchema =mongoose.Schema(
     branchId: {
         type: String,
         required: true
+    },
+    RoleId: {
+        type: String,
+        required: true
     }
     },
     {
