@@ -1,28 +1,35 @@
-// var express = require('express');
 
-// var UserMasterController = require('../src/UserMaster/UserMasterController');
-// const router = express.Router();
-// router.route('/UserMaster/login').post(UserMasterController.loginUserControllerFn);
-// router.route('/UserMaster/create').post(UserMasterController.createUserControllerFn);
-// app.use(express.json());
-// module.exports = router;
+const { Router } = require('express')
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const User = require('../src/UserMaster/MUserMasterModel')
+const router = Router()
+const multer = require('multer');
+const storage =multer.memoryStorage()
+const upload = multer({storage:storage})
 
 
-const {Router} = require('express')
-const bcrypt =require('bcryptjs')
-//const jwt =require('jsonwebtoken')
-const User =require('../src/UserMaster/MUserMasterModel')
-const router =Router()
+router.get("/getName", async (req, res) => {
 
-router.post('/MUserMaster',async(req,res)=>{
-      try{
-        const UserMaster= await User.create(req.body)
-        res.status(200).json(UserMaster);
-    
-      }
-      catch(error){
-    console.log(error.message);
-    res.status(500).json({message:error.message});
-      }
-    })
-     module.exports = router;
+  try {
+    const cookie = req.cookies['jwt']
+    const claims = jwt.verify(cookie, "secret")
+    if (!claims) {
+      return res.status(401).send({
+        message: "unauthenticated"
+      })
+    }
+    const user = await User.findOne({ _id: claims._id })
+
+    const { password, ...data } = await user.toJSON()
+    res.send(data)
+  }
+  catch (err) {
+
+  }
+})
+
+
+
+
+module.exports = router;
