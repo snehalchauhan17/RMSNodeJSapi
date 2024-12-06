@@ -1,6 +1,5 @@
 const { Router } = require('express');
 const MongoClient = require('mongodb').MongoClient;
-const BranchMasterModel = require('../BranchMaster/BranchMasterModel');
 const router = Router();
 const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
 const dbName = "RMS";
@@ -20,6 +19,7 @@ client.connect()
 //District List For Registration Start and OfficeInsert
 router.get("/DistrictList", async (req, res) => {
   try {
+  
     const db = client.db(dbName); // Get the database instance
     const collection = db.collection("DistrictMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection
@@ -35,6 +35,7 @@ router.get("/DistrictList", async (req, res) => {
 
 router.get("/OfficeListbyId/:did", async (req, res) => {
   try {
+   
     // Convert req.params.did to a number if dcode is a number in MongoDB
     const dcodeValue = parseInt(req.params.did);
     const db = client.db(dbName); // Get the database instance
@@ -53,6 +54,7 @@ router.get("/OfficeListbyId/:did", async (req, res) => {
 });
 router.get("/BranchListbyID/:idno", async (req, res) => {
   try {
+  
     console.log('District Code (param):', req.params.idno);
 
     // Convert req.params.did to a number if dcode is a number in MongoDB
@@ -72,79 +74,139 @@ router.get("/BranchListbyID/:idno", async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+
+
+// router.post('/InsertBranch', async (req, res) => {
+//   try {
+   
+//     const { districtId, officeId, BranchName } = req.body;
+//     console.log("Branch Insert req:", req.body);
+
+   
+//     const db = client.db(dbName); // Get the database instance
+//     const collection = db.collection("BranchMaster"); // Get the collection
+//     const result = {
+//       dcode: districtId,
+//       oid: officeId,
+//       BRANCH: BranchName,
+//   };
+
+
+//     console.log("New branch:",result);
+//     await collection.insertOne(result); // Insert the new office into the collection
+//     console.log("New branch:",result);
+//     // Respond with the newly created office
+//     return res.status(201).json(result);
+
+  
+//   } catch (error) {
+//     console.error("Error inserting branch:", error);
+//     res.status(500).json({ message: "Internal Server Error", error: error.message });
+//   }
+// });
 router.post('/InsertBranch', async (req, res) => {
+  try {
+    const { districtId, officeId, BranchName } = req.body;
+    console.log("Branch Insert req:", req.body);
 
-  let districtId = req.body.districtId
-  let officeId = req.body.officeId
-  let BranchName = req.body.BranchName
- 
-  const branchmastermodel = new BranchMasterModel({
+    const db = client.db(dbName); // Get the database instance
+    const branchCollection = db.collection("BranchMaster"); // Get the BranchMaster collection
 
-    districtId: districtId,
-    officeId: officeId,
-    BranchName: BranchName,
+    // Find the current maximum BranchId in the collection
+    const maxBranch = await branchCollection
+      .find({})
+      .sort({ BranchId: -1 }) // Sort in descending order by BranchId
+      .limit(1)
+      .toArray();
 
-  })
-  const result = await branchmastermodel.save()
+    // Calculate the next BranchId
+    const nextBranchId = (maxBranch[0]?.BranchId || 0) + 1;
 
-  res.json({
-      message: "success",
-      dataentry: result
-  });
+    // Prepare the new branch document
+    const newBranch = {
+      BranchId: nextBranchId,
+      oid: officeId,
+      BRANCH: BranchName,
+      dcode: districtId,
+    };
+
+    // Insert the new branch into the collection
+    await branchCollection.insertOne(newBranch);
+
+    console.log("New branch inserted:", newBranch);
+
+    // Respond with the newly created branch
+    return res.status(201).json(newBranch);
+  } catch (error) {
+    console.error("Error inserting branch:", error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
 });
+
 
 // Retrieve all users from the database.
 router.get('/BranchModelList', async (req, res) => {
 
   try {
-  const data = await BranchMasterModel.aggregate([
+  
+       const db = client.db(dbName); // Get the database instance
+       const collection = db.collection("BranchMaster"); // Get the collection
+
+       
+  const data = await collection.aggregate([
     {
       $lookup: {                                    //Left outer join
         from: "DistrictMaster",                     // From table Name
-        localField: "districtId",                   //Field from main table
-        foreignField: "did",                        //Field from table you want to join 
+        localField: "dcode",                   //Field from main table
+        foreignField: "dcode",                        //Field from table you want to join 
          as: "district"                             //alias
       }
     },
     {
-      $unwind: "$district"
-    },
+      $unwind: {
+          path: '$district', // Unwind to convert the array to a single object
+          preserveNullAndEmptyArrays: true // Preserve offices with no matching district
+      }
+  },
     {
       $lookup: {                                      //Left outer join 
         from: "OfficeMaster",                         // From table Name
-        localField: "officeId",                       //Field from main table
+        localField: "oid",                       //Field from main table
         foreignField: "idno",                        //Field from table you want to join 
        as: "office"                                    //alias
       }
     },
     {
-      $unwind: "$office"
-    },
-    {
-      $match: {
-        $and: [
-          { "district.did": { $exists: true } }, // Filter out branches without matching districts
-          { "office.idno": { $exists: true } }   // Filter out branches without matching offices
-        ]
+      $unwind: {
+          path: '$office', // Unwind to convert the array to a single object
+          preserveNullAndEmptyArrays: true // Preserve offices with no matching district
       }
-    },
+  },
+    // {
+    //   $match: {
+    //     $and: [
+    //       { "district.did": { $exists: true } }, // Filter out branches without matching districts
+    //       { "office.idno": { $exists: true } }   // Filter out branches without matching offices
+    //     ]
+    //   }
+    // },
     {
       $project: {
         _id:1,
-        BranchName: 1,
-        districtName: "$district.dname",
+        BRANCH: 1,
+        districtName: "$district.name_g",
         officeName: "$office.name",
         dist_id: "$district.did",
-        districtId:1,
+        dcode:1,
         office_id: "$office.idno",
-        officeId:1
+        oid:1
         // Add other fields if needed
       }
     }
-  ]);
+  ]).toArray();
     //res.status(200).json(data);
     //  const user = await collection.find({}).limit(10).toArray();
-      console.log(data);
+      console.log("Branchmodel List",data);
       
           res.status(200).json(data);
   } catch (error) {
@@ -156,9 +218,10 @@ router.get('/BranchModelList', async (req, res) => {
 // Define your API endpoint
 router.get("/BranchList", async (req, res) => {
   try {
+   
     const db = client.db(dbName); // Get the database instance
     const collection = db.collection("BranchMaster"); // Get the collection
-    const results = await collection.find({}).limit(10).toArray(); // Query the collection
+    const results = await collection.find({}).toArray(); // Query the collection
     res.status(200).send(results); // Send the results as the response
   } catch (error) {
     console.error('Error retrieving data:', error);

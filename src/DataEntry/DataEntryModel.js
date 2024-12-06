@@ -13,6 +13,7 @@ const dataentryschema =mongoose.Schema(
     Subject     :        	{ type: String },
     HukamNo     :        	{ type: String },
     HukamDate   :        	{ type: String },
+    DCode      :         	{ type: String },
     Taluka      :         	{ type: String },
     Village     :        	{ type: String },
     SurveyNo 	:           { type: String },
