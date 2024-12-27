@@ -139,69 +139,116 @@ router.post('/InsertBranch', async (req, res) => {
 
 
 // Retrieve all users from the database.
-router.get('/BranchModelList', async (req, res) => {
+router.get("/BranchModelList/:dcode", async (req, res) => {
 
   try {
+    const dcode = req.params.dcode;
   
+    console.log('branch list: dcode',dcode);
       const db = await connectToMongoClient();
        const collection = db.collection("BranchMaster"); // Get the collection
 
        
+  // const data = await collection.aggregate([
+  //   {
+  //     $lookup: {                                    //Left outer join
+  //       from: "DistrictMaster",                     // From table Name
+  //       localField: "dcode",                   //Field from main table
+  //       foreignField: "dcode",                        //Field from table you want to join 
+  //        as: "district"                             //alias
+  //     }
+  //   },
+  //   {
+  //     $unwind: {
+  //         path: '$district', // Unwind to convert the array to a single object
+  //         preserveNullAndEmptyArrays: true // Preserve offices with no matching district
+  //     }
+  // },
+  //   {
+  //     $lookup: {                                      //Left outer join 
+  //       from: "OfficeMaster",                         // From table Name
+  //       localField: "oid",                       //Field from main table
+  //       foreignField: "idno",                        //Field from table you want to join 
+  //      as: "office"                                    //alias
+  //     }
+  //   },
+  //   {
+  //     $unwind: {
+  //         path: '$office', // Unwind to convert the array to a single object
+  //         preserveNullAndEmptyArrays: true // Preserve offices with no matching district
+  //     }
+  // },
+
+  //   {
+  //     $project: {
+  //       _id:1,
+  //       BRANCH: 1,
+  //       districtName: "$district.name_g",
+  //       officeName: "$office.name",
+  //       dist_id: "$district.did",
+  //       dcode:1,
+  //       office_id: "$office.idno",
+  //       oid:1
+  //       // Add other fields if needed
+  //     }
+  //   }
+  // ]).toArray();
+
   const data = await collection.aggregate([
     {
-      $lookup: {                                    //Left outer join
-        from: "DistrictMaster",                     // From table Name
-        localField: "dcode",                   //Field from main table
-        foreignField: "dcode",                        //Field from table you want to join 
-         as: "district"                             //alias
-      }
+      $match: { dcode: dcode } // Filter branches by dcode
+  },
+  
+    {
+        $lookup: {
+            from: "DistrictMaster",         // Join with DistrictMaster
+            localField: "dcodedetail",           // Field in BranchMaster
+            foreignField: "dcode",         // Field in DistrictMaster
+            as: "districtDetails"
+        }
     },
     {
-      $unwind: {
-          path: '$district', // Unwind to convert the array to a single object
-          preserveNullAndEmptyArrays: true // Preserve offices with no matching district
-      }
-  },
-    {
-      $lookup: {                                      //Left outer join 
-        from: "OfficeMaster",                         // From table Name
-        localField: "oid",                       //Field from main table
-        foreignField: "idno",                        //Field from table you want to join 
-       as: "office"                                    //alias
-      }
+        $lookup: {
+            from: "OfficeMaster",          // Join with OfficeMaster
+            localField: "oiddetail",            // Field in BranchMaster
+            foreignField: "idno",         // Field in OfficeMaster
+            as: "officeDetails"
+        }
     },
     {
-      $unwind: {
-          path: '$office', // Unwind to convert the array to a single object
-          preserveNullAndEmptyArrays: true // Preserve offices with no matching district
-      }
-  },
-    // {
-    //   $match: {
-    //     $and: [
-    //       { "district.did": { $exists: true } }, // Filter out branches without matching districts
-    //       { "office.idno": { $exists: true } }   // Filter out branches without matching offices
-    //     ]
-    //   }
-    // },
+        $project: {
+            _id: 1,
+            dcode: 1,
+            oid: 1,
+            BRANCH: 1,
+            "districtDetails.name_g": 1,  // Select district name
+            "officeDetails.name": 1      // Select office name
+        }
+    },
     {
-      $project: {
-        _id:1,
-        BRANCH: 1,
-        districtName: "$district.name_g",
-        officeName: "$office.name",
-        dist_id: "$district.did",
-        dcode:1,
-        office_id: "$office.idno",
-        oid:1
-        // Add other fields if needed
-      }
+        $unwind: {
+            path: "$districtDetails",    // Flatten the district details array
+            preserveNullAndEmptyArrays: true // Keep documents even if no match
+        }
+    },
+    {
+        $unwind: {
+            path: "$officeDetails",     // Flatten the office details array
+            preserveNullAndEmptyArrays: true // Keep documents even if no match
+        }
     }
-  ]).toArray();
-    //res.status(200).json(data);
-    //  const user = await collection.find({}).limit(10).toArray();
-    
-          res.status(200).json(data);
+]).toArray();
+const data1 = await collection.aggregate([
+  { $match: { dcode: dcode } },
+  { $lookup: { from: "DistrictMaster", localField: "dcode", foreignField: "dcode", as: "districtDetails" } },
+  { $lookup: { from: "OfficeMaster", localField: "oid", foreignField: "idno", as: "officeDetails" } }
+]).toArray();
+console.log('Joined Data:', data1);
+
+// Debug: Log the processed data
+console.log('Data:', data);
+res.status(200).json(data);
+
   } catch (error) {
       res.status(404).json({ message: error.message });
   }

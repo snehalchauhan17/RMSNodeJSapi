@@ -145,26 +145,63 @@ router.post('/MUserMaster', async (req, res) => {
     res.send({ message: "Logged out successfully" });
   });
 
-  
+  // Change Password
+ // const jwt = require('jsonwebtoken'); // Ensure JWT is imported
+
   router.post('/ChangePassword', async (req, res) => {
-    const { username, oldPassword, newPassword } = req.body;
+    const { token, oldPassword, newPassword } = req.body;
   
     try {
-      const user = await User.findOne({ username });
-  
-      if (!user || user.password !== oldPassword) {
-        return res.status(400).json({ message: 'Invalid username or password' });
+      // Verify the JWT token
+      const decoded = jwt.verify(token, 'secret_jwt');
+      console.log('decoded',decoded);
+      const user = await User.findById(decoded._id); // Find user by decoded ID
+      console.log('user for change pawd',user);
+      if (!user) {
+        return res.status(404).send({ message: 'User not found' });
       }
   
-      user.password = newPassword;
+      // Check if old password matches
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).send({ message: 'Incorrect old password' });
+      }
+  
+      // Hash the new password
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(newPassword, salt);
+  
+      // Save the updated user
       await user.save();
   
-      res.json({ message: 'Password changed successfully' });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Internal server error' });
+      // Respond with success message
+      res.status(200).send({ message: 'Password updated successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send({ message: 'Server error', error: err.message });
     }
   });
+  
+  
+  // router.post('/ChangePassword', async (req, res) => {
+  //   const { username, oldPassword, newPassword } = req.body;
+  
+  //   try {
+  //     const user = await User.findOne({ username });
+  
+  //     if (!user || user.password !== oldPassword) {
+  //       return res.status(400).json({ message: 'Invalid username or password' });
+  //     }
+  
+  //     user.password = newPassword;
+  //     await user.save();
+  
+  //     res.json({ message: 'Password changed successfully' });
+  //   } catch (error) {
+  //     console.error(error);
+  //     res.status(500).json({ message: 'Internal server error' });
+  //   }
+  // });
   
   
   module.exports = router;
