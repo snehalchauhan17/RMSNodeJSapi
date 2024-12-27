@@ -5,27 +5,29 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios'); // Import axios for making API calls
-const MongoClient = require('mongodb').MongoClient;
-const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
-const dbName = "RMS";
+const { connectToMongoClient } = require('../../dbconfig');
+// const MongoClient = require('mongodb').MongoClient;
+// const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
+// const dbName = "RMS";
 
-// Create a reusable MongoDB client
-const client = new MongoClient(connectionString);
+// // Create a reusable MongoDB client
+// const client = new MongoClient(connectionString);
 
-// Connect to the MongoDB database
-client.connect()
-  .then(() => {
-    console.log('Connected to the database');
-  })
-  .catch(err => {
-    console.error('Error connecting to the database:', err);
-  });
+// // Connect to the MongoDB database
+// client.connect()
+//   .then(() => {
+//     console.log('Connected to the database');
+//   })
+//   .catch(err => {
+//     console.error('Error connecting to the database:', err);
+//   });
+
 
 router.get("/TalukaListFromDist", async (req, res) => {
     try {
       
 
-      const db = client.db(dbName); // Get the database instance
+      const db = await connectToMongoClient();
       const collection = db.collection("TalukaMaster"); 
 
         // Perform aggregation with $lookup to join with districtmaster
@@ -69,16 +71,11 @@ router.get("/TalukaListFromDist", async (req, res) => {
 
   router.get("/VillageListbyID/:dcode/:TCode", async (req, res) => {
     try {
-      console.log('District Code (param):', req.params.dcode);    
-      console.log('Taluka Code (param):', req.params.TCode);
-  
       // Convert req.params.did to a number if dcode is a number in MongoDB
       const tcode = parseInt(req.params.TCode);
       const dcode = parseInt(req.params.dcode);
           
-      console.log('Taluka Code (param):', req.params.TCode);
-     // console.log('Converted District Code:', officeId);
-      const db = client.db(dbName); // Get the database instance
+     const db = await connectToMongoClient();
       const collection = db.collection("VillageMaster"); // Get the collection
       const user = await collection.find({  dcode: dcode ,tcode:tcode }).toArray(); // Query the collection
       if (user.length === 0) { // checking for null values
@@ -142,7 +139,7 @@ router.post('/InsertRecord', async (req, res) => {
 
     })
     const result = await dataentry.save()
-console.log(result)
+
     res.json({
         message: "success",
         dataentry: result
@@ -162,10 +159,8 @@ router.put('/UpdateRecord/:_id', async (req, res) => {
        
         const _id = req.params._id;
         const updatedData = req.body;
-        console.log("updatedData",updatedData)
         // Update the record using Mongoose
         const updatedRecord = await DataEntry.findByIdAndUpdate(_id, updatedData, { new: true });
-        console.log("updatedRecord",updatedRecord)
         if (!updatedRecord) {
             return res.status(404).json({ message: "Record not found." });
         }
@@ -204,11 +199,9 @@ router.delete('/DeleteRecord/:_id', async (req, res) => {
 
 router.get('/FindRecordbyID/:_id', async (req, res) => {
 
-    console.log(req.params._id)
     let user = ''
     try {
         const user = await DataEntry.findById(req.params._id);
-        console.log('User is:', user)
         if (user == null) 
         { // checking for null values
             return res.status(404).json({ message: 'Cannot find Record' })
@@ -226,8 +219,7 @@ router.get('/FindRecordbyID/:_id', async (req, res) => {
 router.get('/RecordList', async (req, res) => {
 
     try {
-      console.log('before Record List',req.body);
-      const db = client.db(dbName); // Get the database instance
+      const db = await connectToMongoClient();
       const collection = db.collection("dataentries"); 
 
       const results = await collection.aggregate([
@@ -316,8 +308,6 @@ router.get('/RecordList', async (req, res) => {
             }
         }
     ]).toArray();
-    console.log(JSON.stringify(results, null, 2));
-      console.log('Results:', results);
 
       res.status(200).send(results); // Send the results as the response
 } catch (error) {
@@ -329,9 +319,8 @@ router.get('/RecordList', async (req, res) => {
 
 router.get("/searchRecordList", async (req, res) => {
     try {
-      console.log(req.query, "Requested Query");
   
-      const db = client.db(dbName); // Get the database instance
+      const db = await connectToMongoClient();
       const collection = db.collection("dataentries");
       const TalukaMaster = db.collection("TalukaMaster");
       const VillageMaster = db.collection("VillageMaster");
@@ -349,10 +338,10 @@ router.get("/searchRecordList", async (req, res) => {
       // Handle Branch Lookup
       if (Branch) {
         const branchRecord = await BranchMaster.findOne({ BRANCH: { $regex: new RegExp(`^${Branch}$`, 'i')} });
-        console.log('branchRecord', branchRecord);
+
         if (branchRecord) {
           query.Branch = branchRecord._id.toString();
-          console.log('query.Branch', query.Branch);
+
         } else {
           return res.status(404).json({ message: "Branch not found" });
         }
@@ -361,13 +350,12 @@ router.get("/searchRecordList", async (req, res) => {
       // Handle Taluka Lookup
       if (Taluka) {
         const talukaRecord = await TalukaMaster.findOne({ TalName_G: { $regex: new RegExp(`^${Taluka}$`, 'i') } });
-        console.log('talukaRecord', talukaRecord);
         if (talukaRecord) {
             query.Taluka = talukaRecord.TCode.toString();
 query.DCode = talukaRecord.DCode.toString();
         //   query.Taluka = talukaRecord.TCode;
         //   query.DCode = talukaRecord.DCode;
-         console.log('query.DCode', query.DCode);
+
         } else {
           return res.status(404).json({ message: "Taluka not found" });
         }
@@ -394,12 +382,11 @@ query.DCode = talukaRecord.DCode.toString();
       if (Subject) query.Subject = { $regex: new RegExp(Subject, 'i') };
       if (PotlaNo) query.PotlaNo = { $regex: new RegExp(`^${PotlaNo}$`, 'i') };
       if (FeristNo) query.FeristNo = { $regex: new RegExp(FeristNo, 'i') };
-      console.log('Constructed Query:', query);
+
 
       // Check simple find results before aggregation
       const simpleResults = await collection.find(query).toArray();
-      console.log('Simple Query Results:', simpleResults);
-      console.log('query:', query);
+
       const results = await collection.aggregate([
         { $match: query },
         {
@@ -490,7 +477,7 @@ query.DCode = talukaRecord.DCode.toString();
         }
       ]).toArray();
   
-      console.log('Results:', results);
+
 
       res.status(200).send(results); // Send the results as the response
     } catch (error) {
@@ -506,14 +493,13 @@ query.DCode = talukaRecord.DCode.toString();
 
     // Construct the query parameters from the request
     const queryParams = req.query; // Directly get the query parameters
-    console.log("Search queryParams", queryParams);
+
   
     // Call the searchRecordList API to fetch records
     const searchResponse = await axios.get(`http://10.154.2.172:3000/api/searchRecordList`, { params: queryParams });
     const records = searchResponse.data;
   
-    console.log("Search Data", searchResponse.data);
-  
+
     const doc = new PDFDocument();
     let filename = 'my-document.pdf';
     res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
@@ -524,7 +510,7 @@ query.DCode = talukaRecord.DCode.toString();
   
     // Load the Gujarati font (replace with the path to your font file)
     const gujaratiFontPath = path.join(__dirname, '..', 'Font', 'Shruti.ttf');
-    console.log(gujaratiFontPath);
+
     doc.registerFont('GujaratiFont', gujaratiFontPath);
   
     // Add content to the PDF using the Gujarati font

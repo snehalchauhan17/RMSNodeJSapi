@@ -1,26 +1,29 @@
 const { Router } = require('express');
-const MongoClient = require('mongodb').MongoClient;
+//const MongoClient = require('mongodb').MongoClient;
 const router = Router();
-const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
-const dbName = "RMS";
+// const { connectToMongoose } = require('../dbConfig');
+const { connectToMongoClient } = require('../../dbconfig');
 
-// Create a reusable MongoDB client
-const client = new MongoClient(connectionString);
+// const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
+// const dbName = "RMS";
 
-// Connect to the MongoDB database
-client.connect()
-  .then(() => {
-    console.log('Connected to the database');
-  })
-  .catch(err => {
-    console.error('Error connecting to the database:', err);
-  });
+// // Create a reusable MongoDB client
+// const client = new MongoClient(connectionString);
+
+// // Connect to the MongoDB database
+// client.connect()
+//   .then(() => {
+//     console.log('Connected to the database');
+//   })
+//   .catch(err => {
+//     console.error('Error connecting to the database:', err);
+//   });
 
 //District List For Registration Start and OfficeInsert
 router.get("/DistrictList", async (req, res) => {
   try {
   
-    const db = client.db(dbName); // Get the database instance
+    const db = await connectToMongoClient();
     const collection = db.collection("DistrictMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection
     res.status(200).send(results); // Send the results as the response
@@ -38,7 +41,7 @@ router.get("/OfficeListbyId/:did", async (req, res) => {
    
     // Convert req.params.did to a number if dcode is a number in MongoDB
     const dcodeValue = parseInt(req.params.did);
-    const db = client.db(dbName); // Get the database instance
+    const db = await connectToMongoClient();
     const collection = db.collection("OfficeMaster"); // Get the collection
     const user = await collection.find({ dcode:dcodeValue }).toArray(); // Query the collection
 
@@ -54,13 +57,10 @@ router.get("/OfficeListbyId/:did", async (req, res) => {
 });
 router.get("/BranchListbyID/:idno", async (req, res) => {
   try {
-  
-    console.log('District Code (param):', req.params.idno);
 
     // Convert req.params.did to a number if dcode is a number in MongoDB
     const officeId = parseInt(req.params.idno);
-   // console.log('Converted District Code:', officeId);
-    const db = client.db(dbName); // Get the database instance
+    const db = await connectToMongoClient();
     const collection = db.collection("BranchMaster"); // Get the collection
     const user = await collection.find({ oid:officeId }).toArray(); // Query the collection
 
@@ -80,7 +80,6 @@ router.get("/BranchListbyID/:idno", async (req, res) => {
 //   try {
    
 //     const { districtId, officeId, BranchName } = req.body;
-//     console.log("Branch Insert req:", req.body);
 
    
 //     const db = client.db(dbName); // Get the database instance
@@ -92,9 +91,8 @@ router.get("/BranchListbyID/:idno", async (req, res) => {
 //   };
 
 
-//     console.log("New branch:",result);
+
 //     await collection.insertOne(result); // Insert the new office into the collection
-//     console.log("New branch:",result);
 //     // Respond with the newly created office
 //     return res.status(201).json(result);
 
@@ -107,9 +105,7 @@ router.get("/BranchListbyID/:idno", async (req, res) => {
 router.post('/InsertBranch', async (req, res) => {
   try {
     const { districtId, officeId, BranchName } = req.body;
-    console.log("Branch Insert req:", req.body);
-
-    const db = client.db(dbName); // Get the database instance
+    const db = await connectToMongoClient();
     const branchCollection = db.collection("BranchMaster"); // Get the BranchMaster collection
 
     // Find the current maximum BranchId in the collection
@@ -133,8 +129,6 @@ router.post('/InsertBranch', async (req, res) => {
     // Insert the new branch into the collection
     await branchCollection.insertOne(newBranch);
 
-    console.log("New branch inserted:", newBranch);
-
     // Respond with the newly created branch
     return res.status(201).json(newBranch);
   } catch (error) {
@@ -149,7 +143,7 @@ router.get('/BranchModelList', async (req, res) => {
 
   try {
   
-       const db = client.db(dbName); // Get the database instance
+      const db = await connectToMongoClient();
        const collection = db.collection("BranchMaster"); // Get the collection
 
        
@@ -206,8 +200,7 @@ router.get('/BranchModelList', async (req, res) => {
   ]).toArray();
     //res.status(200).json(data);
     //  const user = await collection.find({}).limit(10).toArray();
-      console.log("Branchmodel List",data);
-      
+    
           res.status(200).json(data);
   } catch (error) {
       res.status(404).json({ message: error.message });
@@ -219,7 +212,7 @@ router.get('/BranchModelList', async (req, res) => {
 router.get("/BranchList", async (req, res) => {
   try {
    
-    const db = client.db(dbName); // Get the database instance
+    const db = await connectToMongoClient();
     const collection = db.collection("BranchMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection
     res.status(200).send(results); // Send the results as the response

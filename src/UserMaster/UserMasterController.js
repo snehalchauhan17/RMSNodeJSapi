@@ -7,28 +7,29 @@ const router = Router()
 const multer = require('multer');
 const storage =multer.memoryStorage()
 const upload = multer({storage:storage})
-const MongoClient = require('mongodb').MongoClient;
-const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
-const dbName = "RMS";
+// const MongoClient = require('mongodb').MongoClient;
+// const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
+// const dbName = "RMS";
 
+const { connectToMongoClient } = require('../../dbconfig');
 
+// // Create a reusable MongoDB client
+// const client = new MongoClient(connectionString);
 
-// Create a reusable MongoDB client
-const client = new MongoClient(connectionString);
-
-// Connect to the MongoDB database
-client.connect()
-  .then(() => {
-    console.log('Connected to the database');
-  })
-  .catch(err => {
-    console.error('Error connecting to the database:', err);
-  });
+// // Connect to the MongoDB database
+// client.connect()
+//   .then(() => {
+//     console.log('Connected to the database');
+//   })
+//   .catch(err => {
+//     console.error('Error connecting to the database:', err);
+//   });
 
 
 router.get("/RoleList", async (req, res) => {
   try {
-    const db = client.db(dbName); // Get the database instance
+   
+    const db = await connectToMongoClient();
     const collection = db.collection("RoleMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection
     res.status(200).send(results); // Send the results as the response

@@ -1,22 +1,23 @@
 const { Router } = require('express');
-const MongoClient = require('mongodb').MongoClient;
+//const MongoClient = require('mongodb').MongoClient;
 const { ObjectId } = require('mongodb');  // Import ObjectId
 const router = Router();
-const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
-const dbName = "RMS";
-//const OfficeMastermodel = require('../OfficeMaster/OfficeMasterModel')
+const { connectToMongoClient } = require('../../dbconfig');
+// const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
+// const dbName = "RMS";
+// //const OfficeMastermodel = require('../OfficeMaster/OfficeMasterModel')
 
-// Create a reusable MongoDB client
-const client = new MongoClient(connectionString);
+// // Create a reusable MongoDB client
+// const client = new MongoClient(connectionString);
 
-// Connect to the MongoDB database
-client.connect()
-  .then(() => {
-    console.log('Connected to the database');
-  })
-  .catch(err => {
-    console.error('Error connecting to the database:', err);
-  });
+// // Connect to the MongoDB database
+// client.connect()
+//   .then(() => {
+//     console.log('Connected to the database');
+//   })
+//   .catch(err => {
+//     console.error('Error connecting to the database:', err);
+//   });
   
 // router.post("/InsertOffice", async (req, res) => {
 //     const { name, OTYP, dcode } = req.body;
@@ -70,11 +71,11 @@ client.connect()
 
 router.post("/InsertOffice", async (req, res) => {
   const { name, OTYP, dcode } = req.body;
-  console.log("Office Insert Request:", req.body);
 
   try {
     // Get database and collection
-    const database = client.db(dbName);
+    //const db = await connectToMongoClient();
+    const database = await connectToMongoClient();
     const collection = database.collection("OfficeMaster");
 
     // Find the maximum `idno` in the collection
@@ -106,8 +107,6 @@ router.post("/InsertOffice", async (req, res) => {
     // Insert the new office
     await collection.insertOne(newOffice);
 
-    console.log("New Office Inserted:", newOffice);
-
     // Respond with the newly created office
     return res.status(201).json(newOffice);
   } catch (error) {
@@ -120,7 +119,7 @@ router.post("/InsertOffice", async (req, res) => {
 router.get("/BranchList", async (req, res) => {
   try {
     
-    const db = client.db(dbName); // Get the database instance
+    const db = await connectToMongoClient();
     const collection = db.collection("BranchMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection
     res.status(200).send(results); // Send the results as the response\
@@ -134,7 +133,7 @@ router.get("/OfficeMasterList", async (req, res) => {
     try {
       
 
-      const db = client.db(dbName); // Get the database instance
+      const db = await connectToMongoClient();
       const collection = db.collection("OfficeMaster"); 
 
         // Perform aggregation with $lookup to join with districtmaster
@@ -167,7 +166,6 @@ router.get("/OfficeMasterList", async (req, res) => {
 
      // const results = await collection.find({}).toArray(); // Query the collection
 
-console.log("OfficeList after redirect: ",results);
 
       res.status(200).send(results); // Send the results as the response
 
@@ -181,8 +179,7 @@ console.log("OfficeList after redirect: ",results);
     try {
      
         const _id = req.params._id.toString();
-        console.log("OfficeList user : ",_id);
-        const db = client.db(dbName); // Get the database instance
+        const db = await connectToMongoClient();
         const collection = db.collection("OfficeMaster"); // Get the collection
   
         // Check if _id is a valid ObjectId string format
@@ -194,8 +191,6 @@ console.log("OfficeList after redirect: ",results);
 
         // Find the record by _id
         const user = await collection.findOne({  _id: new ObjectId(_id) });
-        console.log("OfficeList user : ",user);
-
         if (!user) {
             return res.status(404).json({ message: 'Cannot find record' });
         }
@@ -241,7 +236,7 @@ router.delete('/DeleteOffice/:_id', async (req, res) => {
           return res.status(400).json({ message: 'Missing _id parameter in request' });
       }
 
-      const db = client.db(dbName); // Get the database instance
+      const db = await connectToMongoClient();
       const collection = db.collection("OfficeMaster"); // Get the collection
 
       // Use MongoDB's deleteOne method with an ObjectId
@@ -318,8 +313,7 @@ router.put('/UpdateOffice/:_id', async (req, res) => {
       if (!updatedData || Object.keys(updatedData).length === 0) {
           return res.status(400).json({ message: "Data to update cannot be empty!" });
       }
-
-      const db = client.db(dbName); // Get the database instance
+      const db = await connectToMongoClient();
       const collection = db.collection("OfficeMaster"); // Get the collection
 
       // Update the record
@@ -350,10 +344,10 @@ module.exports = router;
 //     const collection = db.collection("DistrictMaster"); // Get the collection
 //     const results = await collection.find({}).toArray(); // Query the collection
 //     res.status(200).send(results); // Send the results as the response
-//     console.log("District List Master Dropdown",results);
+
 //   } catch (error) {
 //     console.error('Error retrieving data:', error);
-//     console.log('Error retrieving data:', error);
+
 //     res.status(500).send('Internal Server Error');
 //   }
 // });

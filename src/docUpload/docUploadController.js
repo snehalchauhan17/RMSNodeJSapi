@@ -7,7 +7,6 @@ const multer = require('multer');
 const storage = multer.memoryStorage()
 const upload = multer({ storage: storage })
 
-
 router.post('/upload', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -52,7 +51,6 @@ router.get('/ViewDocument/:_id', async (req, res) => {
         // Send the binary data of the document
         res.contentType('application/pdf'); // Assuming the document is a PDF
         res.send(document.doc.data); 
-        console.log(document.doc.data)// Assuming binary data is stored as 'binaryData' in the document schema
     } catch (error) {
         console.error('Error fetching document:', error);
         res.status(500).json({ error: 'Internal server error' });

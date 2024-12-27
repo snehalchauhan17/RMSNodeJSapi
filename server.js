@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
 var route = require('./route/routes');
+const { connectToMongoose, connectToMongoClient } = require('./dbconfig');
+
 //const multer = require('multer')
 const app = express()
 const DataEntry = require('./src/DataEntry/DataEntryController'); 
@@ -23,32 +25,50 @@ app.use(express.static('public'))
 app.use(express.urlencoded({extended:false}))
 // app.use('view engine','ejs')
 app.use(express.json());
-//mongodb://sa:sa123@10.154.2.131:27017/
-//mongoose.connect("mongodb://localhost:27017/RMS")
 
-const mongoURI = 'mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin';
+
 const port = process.env.PORT || 3000;
 
-const options = {
-
-  dbName: 'RMS', // Specify the database name here
-};
-
-// Connect to MongoDB
-mongoose.connect(mongoURI, options)
+// Establish the MongoDB connection
+connectToMongoose() // First establish mongoose connection
+  .then(() => connectToMongoClient()) // Then establish MongoClient connection
   .then(() => {
-    console.log('Connected to MongoDB');
-
-    // Start the server after successful DB connection
-    app.listen(port, '10.154.2.172', () => {
+    // Start the server after successful DB connections
+    app.listen(port, '0.0.0.0', () => {
       console.log(`Server running at http://10.154.2.172:${port}/`);
     });
   })
-  .catch(err => {
-    console.error("Error connecting to the database:", err);
+  .catch((err) => {
+    console.error('Failed to start the server due to database connection error:', err);
   });
-// Options to pass to the MongoDB driver during connection setup
 
+
+
+//mongodb://sa:sa123@10.154.2.131:27017/
+//mongoose.connect("mongodb://localhost:27017/RMS")
+
+// const mongoURI = 'mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin';
+// const port = process.env.PORT || 3000;
+
+// const options = {
+
+//   dbName: 'RMS', // Specify the database name here
+// };
+
+// Connect to MongoDB
+// mongoose.connect(mongoURI, options)
+//   .then(() => {
+//     console.log('Connected to MongoDB');
+
+//     // Start the server after successful DB connection
+//     app.listen(port, '0.0.0.0', () => {
+//       console.log(`Server running at http://10.154.2.172:${port}/`);
+//     });
+//   })
+//   .catch(err => {
+//     console.error("Error connecting to the database:", err);
+//   });
+// Options to pass to the MongoDB driver during connection setup
 
 
 // mongoose.connect(mongoURI, options)
