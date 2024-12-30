@@ -1,72 +1,10 @@
 const { Router } = require('express');
 //const MongoClient = require('mongodb').MongoClient;
 const { ObjectId } = require('mongodb');  // Import ObjectId
+
 const router = Router();
 const { connectToMongoClient } = require('../../dbconfig');
-// const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
-// const dbName = "RMS";
-// //const OfficeMastermodel = require('../OfficeMaster/OfficeMasterModel')
 
-// // Create a reusable MongoDB client
-// const client = new MongoClient(connectionString);
-
-// // Connect to the MongoDB database
-// client.connect()
-//   .then(() => {
-//     console.log('Connected to the database');
-//   })
-//   .catch(err => {
-//     console.error('Error connecting to the database:', err);
-//   });
-  
-// router.post("/InsertOffice", async (req, res) => {
-//     const { name, OTYP, dcode } = req.body;
-//     console.log("Office Insert req:",req.body);
-//     try {
-       
-//         // Select your database and collection (replace with your actual DB and collection names)
-//         const database = client.db(dbName); // Replace with your DB name
-//         const collection = database.collection("OfficeMaster"); // Get the collection
-
-
-//         const lastOffice = await collection
-//         .find({ idno: { $gte: parseFloat(`${dcode}.00`), $lt: parseFloat(`${dcode + 1}.00`) } })
-//         .sort({ idno: -1 })
-//         .limit(1)
-//         .toArray();
-
-//             console.log("last Office:",lastOffice);
-
-//             let newOfficeId;
-
-//             if (lastOffice.length > 0) {
-//               // Extract the last idno and increment it
-//               const lastIdno = lastOffice[0].idno; // Correctly access the idno as a float
-//               newOfficeId = parseFloat((lastIdno + 0.01).toFixed(2)); // Increment by 0.01
-//           } else {
-//               // Start with districtId.01 if no offices exist
-//               newOfficeId = parseFloat(`${dcode}.01`);
-//           }
-
-//         const newOffice = {
-//           idno: newOfficeId, // Store as float
-//           name: name, // Store as string
-//           OTYP: parseInt(OTYP, 10), // Store as int
-//           dcode: parseInt(dcode, 10), // Store as int
-//       };
-
-//         console.log("New Office:",newOffice);
-//         await collection.insertOne(newOffice); // Insert the new office into the collection
-//         console.log("New Office:",newOffice);
-//         // Respond with the newly created office
-//         return res.status(201).json(newOffice);
-//         console.log("New Office:",newOffice);
-
-//     } catch (error) {
-//         console.error('Error creating new office:', error);
-//         return res.status(500).json({ message: 'Error creating new office', error });
-//     } 
-// });
 
 
 router.post("/InsertOffice", async (req, res) => {
@@ -96,11 +34,11 @@ router.post("/InsertOffice", async (req, res) => {
     const name_e = translateToEnglish(name);
     // Create the new office document
     const newOffice = {
-      idno: nextOfficeId,
-      dcode,
+      idno: Number(nextOfficeId),
+      dcode:Number(dcode),
       name,
       name_e :name_e,
-      OTYP,
+      OTYP:Number(OTYP),
 
     };
 
@@ -306,9 +244,19 @@ router.delete('/DeleteOffice/:_id', async (req, res) => {
 
 router.put('/UpdateOffice/:_id', async (req, res) => {
   try {
-  
-      const _id = req.params._id;
+
+    const { _id } = req.params; // Destructure _id from req.params
+    console.log("Request Parameters:", req.params);
       const updatedData = req.body;
+      console.log("result for updatedData",updatedData);
+      delete updatedData._id;  // Remove _id from updatedData
+
+    // Validate _id format
+    
+    if (!ObjectId.isValid(_id)) {
+      return res.status(400).json({ message: "Invalid ObjectId format." });
+    }
+
 
       if (!updatedData || Object.keys(updatedData).length === 0) {
           return res.status(400).json({ message: "Data to update cannot be empty!" });
@@ -318,16 +266,13 @@ router.put('/UpdateOffice/:_id', async (req, res) => {
 
       // Update the record
       const result = await collection.findOneAndUpdate(
-          { _id: new require('mongodb').ObjectId(_id) }, // Filter
+          { _id: new ObjectId(_id) }, // Filter
           { $set: updatedData }, // Update data
           { returnDocument: 'after' } // Return updated document
       );
+      console.log("result for updatedData", result.value );
 
-      if (!result.value) {
-          return res.status(404).json({ message: "Record not found." });
-      }
-
-      res.json({ message: "Record updated successfully.", data: result.value });
+      res.json({ message: "Record updated successfully.", data:result });
   } catch (err) {
       console.error("Error updating record:", err);
       res.status(500).json({ message: err.message || "An error occurred while updating the record." });

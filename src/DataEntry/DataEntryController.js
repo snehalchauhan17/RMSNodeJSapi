@@ -478,7 +478,6 @@ query.DCode = talukaRecord.DCode.toString();
       ]).toArray();
   
 
-
       res.status(200).send(results); // Send the results as the response
     } catch (error) {
       console.error('Error Occurred:', error);
@@ -493,12 +492,80 @@ query.DCode = talukaRecord.DCode.toString();
 
     // Construct the query parameters from the request
     const queryParams = req.query; // Directly get the query parameters
+  //   const records = await DataEntry.aggregate([
+  //     {
+  //         $match: queryParams, // Your filter criteria
+  //     },
+  //     {
+  //       $lookup: {
+  //         from: 'TalukaMaster', // The collection to join with
+  //         let: { localTCode: '$Taluka', localDCode: '$DCode' }, // Define variables for local fields
+  //         pipeline: [
+  //             {
+  //                 $match: {
+  //                     $expr: {
+  //                         $and: [
+  //                             { $eq: ['$TCode', '$$localTCode'] }, // Match TCode
+  //                             { $eq: ['$DCode', '$$localDCode'] }  // Match DCode
+  //                         ]
+  //                     }
+  //                 }
+  //             },
+  //             {
+  //                 $project: { _id: 0, name: 1 } // Select only the fields you need
+  //             }
+  //         ],
+  //         as: 'TalukaDetails' // Output array field for matched documents
+  //     }
+  //   },
 
+  //     {
+  //       $lookup: {
+  //         from: 'VillageMaster',
+  //         let: { dCode: '$DCode', taluka: '$Taluka', village: '$Village' },
+  //         pipeline: [
+  //             {
+  //                 $match: {
+  //                     $expr: {
+  //                         $and: [
+  //                             // { $eq: ['$dcode', '$$dCode'] },
+  //                             // { $eq: ['$tcode', '$$taluka'] },
+  //                             // { $eq: ['$dtv', '$$village'] }
+
+  //                             { $eq: [{ $toString: '$dcode' }, '$$dCode'] },  // Type casting
+  //                             { $eq: [{ $toString: '$tcode' }, '$$taluka'] }, // Type casting
+  //                             { $eq: [{ $toString: '$dtv' }, '$$village'] }   // Type casting
+  //                         ]
+  //                     }
+  //                 }
+  //             }
+  //         ],
+  //         as: 'villageDetails'
+  //     }
+  //     },
+  //     {
+  //       $lookup: {
+  //           from: 'BranchMaster', // The name of the Branch collection
+  //           localField: 'Branch',
+  //           foreignField: '_id',
+  //           as: 'BranchDetails',
+  //       },
+  //   },
+  //     {
+  //         $project: {
+  //             Year: 1,
+  //             Branch: { $arrayElemAt: ['$BranchDetails.BRANCH', 0] },
+  //             Village: { $arrayElemAt: ['$villageDetails.vname_g', 0] },
+  //             Taluka: { $arrayElemAt: ['$TalukaDetails.TalName_G', 0] },
+  //             // Other fields...
+  //         },
+  //     },
+  // ]);
   
     // Call the searchRecordList API to fetch records
-    const searchResponse = await axios.get(`http://10.154.2.172:3000/api/searchRecordList`, { params: queryParams });
+    const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
     const records = searchResponse.data;
-  
+  console.log("SEARCH DATA",searchResponse.data);
 
     const doc = new PDFDocument();
     let filename = 'my-document.pdf';
@@ -520,12 +587,12 @@ query.DCode = talukaRecord.DCode.toString();
     // Define headers and corresponding fields
     const headers = [
       { header: 'ફાઇલનુ વર્ષ', field: 'Year' },
-      { header: 'શાખા', field: 'Branch' },
+      { header: 'શાખા', field: 'BranchName' },
       { header: 'વર્ગ', field: 'Category' },
       { header: 'આખરી હુકમ નંબર', field: 'HukamNo' },
       { header: 'હુકમ ની તારીખ', field: 'HukamDate' },
-      { header: 'તાલુકો', field: 'Taluka' },
-      { header: 'ગામ', field: 'Village' },
+      { header: 'તાલુકો', field: 'TalukaName' },
+      { header: 'ગામ', field: 'VillageName' },
       { header: 'સર્વે નંબર', field: 'SurveyNo' },
       { header: 'અરજદાર નુ નામ', field: 'Name' },
       { header: 'વિષય', field: 'Subject' },

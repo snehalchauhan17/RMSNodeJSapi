@@ -4,25 +4,10 @@ const router = Router();
 // const { connectToMongoose } = require('../dbConfig');
 const { connectToMongoClient } = require('../../dbconfig');
 
-// const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
-// const dbName = "RMS";
-
-// // Create a reusable MongoDB client
-// const client = new MongoClient(connectionString);
-
-// // Connect to the MongoDB database
-// client.connect()
-//   .then(() => {
-//     console.log('Connected to the database');
-//   })
-//   .catch(err => {
-//     console.error('Error connecting to the database:', err);
-//   });
-
 //District List For Registration Start and OfficeInsert
 router.get("/DistrictList", async (req, res) => {
   try {
-  
+
     const db = await connectToMongoClient();
     const collection = db.collection("DistrictMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection
@@ -38,16 +23,16 @@ router.get("/DistrictList", async (req, res) => {
 
 router.get("/OfficeListbyId/:did", async (req, res) => {
   try {
-   
+
     // Convert req.params.did to a number if dcode is a number in MongoDB
     const dcodeValue = parseInt(req.params.did);
     const db = await connectToMongoClient();
     const collection = db.collection("OfficeMaster"); // Get the collection
-    const user = await collection.find({ dcode:dcodeValue }).toArray(); // Query the collection
+    const user = await collection.find({ dcode: dcodeValue }).toArray(); // Query the collection
 
     if (user.length === 0) { // checking for null values
       return res.status(404).json({ message: 'Cannot find Record' })
-  }
+    }
     res.status(200).send(user); // Send the results as the response
 
   } catch (error) {
@@ -62,11 +47,11 @@ router.get("/BranchListbyID/:idno", async (req, res) => {
     const officeId = parseInt(req.params.idno);
     const db = await connectToMongoClient();
     const collection = db.collection("BranchMaster"); // Get the collection
-    const user = await collection.find({ oid:officeId }).toArray(); // Query the collection
+    const user = await collection.find({ oid: officeId }).toArray(); // Query the collection
 
     if (user.length === 0) { // checking for null values
       return res.status(404).json({ message: 'Cannot find Record' })
-  }
+    }
     res.status(200).send(user); // Send the results as the response
 
   } catch (error) {
@@ -76,32 +61,6 @@ router.get("/BranchListbyID/:idno", async (req, res) => {
 });
 
 
-// router.post('/InsertBranch', async (req, res) => {
-//   try {
-   
-//     const { districtId, officeId, BranchName } = req.body;
-
-   
-//     const db = client.db(dbName); // Get the database instance
-//     const collection = db.collection("BranchMaster"); // Get the collection
-//     const result = {
-//       dcode: districtId,
-//       oid: officeId,
-//       BRANCH: BranchName,
-//   };
-
-
-
-//     await collection.insertOne(result); // Insert the new office into the collection
-//     // Respond with the newly created office
-//     return res.status(201).json(result);
-
-  
-//   } catch (error) {
-//     console.error("Error inserting branch:", error);
-//     res.status(500).json({ message: "Internal Server Error", error: error.message });
-//   }
-// });
 router.post('/InsertBranch', async (req, res) => {
   try {
     const { districtId, officeId, BranchName } = req.body;
@@ -121,9 +80,9 @@ router.post('/InsertBranch', async (req, res) => {
     // Prepare the new branch document
     const newBranch = {
       BranchId: nextBranchId,
-      oid: officeId,
+      oid: Number(officeId),
       BRANCH: BranchName,
-      dcode: districtId,
+      dcode: Number(districtId),
     };
 
     // Insert the new branch into the collection
@@ -143,114 +102,57 @@ router.get("/BranchModelList/:dcode", async (req, res) => {
 
   try {
     const dcode = req.params.dcode;
-  
-    console.log('branch list: dcode',dcode);
-      const db = await connectToMongoClient();
-       const collection = db.collection("BranchMaster"); // Get the collection
+    const Pera_dcode = Number(req.params.dcode);
+    console.log('branch list: dcode', dcode);
+    const db = await connectToMongoClient();
+    //  const collection = db.collection("BranchMaster"); // Get the collection
 
-       
-  // const data = await collection.aggregate([
-  //   {
-  //     $lookup: {                                    //Left outer join
-  //       from: "DistrictMaster",                     // From table Name
-  //       localField: "dcode",                   //Field from main table
-  //       foreignField: "dcode",                        //Field from table you want to join 
-  //        as: "district"                             //alias
-  //     }
-  //   },
-  //   {
-  //     $unwind: {
-  //         path: '$district', // Unwind to convert the array to a single object
-  //         preserveNullAndEmptyArrays: true // Preserve offices with no matching district
-  //     }
-  // },
-  //   {
-  //     $lookup: {                                      //Left outer join 
-  //       from: "OfficeMaster",                         // From table Name
-  //       localField: "oid",                       //Field from main table
-  //       foreignField: "idno",                        //Field from table you want to join 
-  //      as: "office"                                    //alias
-  //     }
-  //   },
-  //   {
-  //     $unwind: {
-  //         path: '$office', // Unwind to convert the array to a single object
-  //         preserveNullAndEmptyArrays: true // Preserve offices with no matching district
-  //     }
-  // },
 
-  //   {
-  //     $project: {
-  //       _id:1,
-  //       BRANCH: 1,
-  //       districtName: "$district.name_g",
-  //       officeName: "$office.name",
-  //       dist_id: "$district.did",
-  //       dcode:1,
-  //       office_id: "$office.idno",
-  //       oid:1
-  //       // Add other fields if needed
-  //     }
-  //   }
-  // ]).toArray();
 
-  const data = await collection.aggregate([
-    {
-      $match: { dcode: dcode } // Filter branches by dcode
-  },
-  
-    {
+    const branchmasterCollection = db.collection("BranchMaster"); // Get the collection
+    const result = await branchmasterCollection.aggregate([
+      // First lookup: Join with DistrictMaster
+      {
         $lookup: {
-            from: "DistrictMaster",         // Join with DistrictMaster
-            localField: "dcodedetail",           // Field in BranchMaster
-            foreignField: "dcode",         // Field in DistrictMaster
-            as: "districtDetails"
+          from: "DistrictMaster",         // Collection to join
+          localField: "dcode",           // Field in Branchmaster
+          foreignField: "dcode",         // Field in DistrictMaster
+          as: "districtDetails"          // Alias for the joined data
         }
-    },
-    {
+      },
+      { $unwind: '$districtDetails' },    // Flatten the districtDetails array
+
+      // Second lookup: Join with OfficeMaster
+      {
         $lookup: {
-            from: "OfficeMaster",          // Join with OfficeMaster
-            localField: "oiddetail",            // Field in BranchMaster
-            foreignField: "idno",         // Field in OfficeMaster
-            as: "officeDetails"
+          from: "OfficeMaster",         // Collection to join
+          localField: "oid",             // Field in Branchmaster
+          foreignField: "idno",          // Field in officeDetails
+          as: "officeDetails"            // Alias for the joined data
         }
-    },
-    {
+      },
+      { $unwind: '$officeDetails' },      // Flatten the officeDetails array
+
+      // Filtering condition
+      { $match: { dcode: Pera_dcode } },           // Match the specific dcode
+
+      // Project the required fields
+      {
         $project: {
-            _id: 1,
-            dcode: 1,
-            oid: 1,
-            BRANCH: 1,
-            "districtDetails.name_g": 1,  // Select district name
-            "officeDetails.name": 1      // Select office name
+          BRANCH: 1,                      // Branch name from Branchmaster
+          DistrictName: '$districtDetails.name_g',    // Gujarati district name
+          OfficeName: '$officeDetails.name',  // Office name from officeDetails
+          _id: 0                          // Exclude the _id field
         }
-    },
-    {
-        $unwind: {
-            path: "$districtDetails",    // Flatten the district details array
-            preserveNullAndEmptyArrays: true // Keep documents even if no match
-        }
-    },
-    {
-        $unwind: {
-            path: "$officeDetails",     // Flatten the office details array
-            preserveNullAndEmptyArrays: true // Keep documents even if no match
-        }
-    }
-]).toArray();
-const data1 = await collection.aggregate([
-  { $match: { dcode: dcode } },
-  { $lookup: { from: "DistrictMaster", localField: "dcode", foreignField: "dcode", as: "districtDetails" } },
-  { $lookup: { from: "OfficeMaster", localField: "oid", foreignField: "idno", as: "officeDetails" } }
-]).toArray();
-console.log('Joined Data:', data1);
+      }
+    ]).toArray();
 
-// Debug: Log the processed data
-console.log('Data:', data);
-res.status(200).json(data);
+    console.log("Result:", result);
+
+    res.status(200).json(result);
 
   } catch (error) {
-      res.status(404).json({ message: error.message });
+    res.status(404).json({ message: error.message });
   }
 });
 
@@ -258,7 +160,7 @@ res.status(200).json(data);
 // Define your API endpoint
 router.get("/BranchList", async (req, res) => {
   try {
-   
+
     const db = await connectToMongoClient();
     const collection = db.collection("BranchMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection

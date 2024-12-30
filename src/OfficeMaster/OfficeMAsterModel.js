@@ -5,9 +5,9 @@ const officeMasterschema =mongoose.Schema(
     {
 
     office:           	{ type: String, required: true },
-    id:         	    { type: String, required: true  },
+    id:         	    { type: Number, required: true  },
     officetype:       	{ type: String },
-    dcode:          	{ type: String },    	
+    dcode:          	{ type: Number },    	
     },
     {
         timestamps : true
