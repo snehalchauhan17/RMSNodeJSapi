@@ -226,7 +226,7 @@ router.get('/RecordList', async (req, res) => {
         {
             $lookup: {
                 from: 'TalukaMaster',
-                let: { dCode: '$DCode', taluka: '$Taluka' },
+                let: { dCode: { $toString: '$DCode' }, taluka: { $toString: '$Taluka' } },
                 pipeline: [
                     {
                         $match: {
@@ -249,7 +249,7 @@ router.get('/RecordList', async (req, res) => {
         {
             $lookup: {
                 from: 'VillageMaster',
-                let: { dCode: '$DCode', taluka: '$Taluka', village: '$Village' },
+                let: { dCode: { $toString: '$DCode' }, taluka: { $toString: '$Taluka' }, village: { $toString: '$Village' } },
                 pipeline: [
                     {
                         $match: {
@@ -308,6 +308,7 @@ router.get('/RecordList', async (req, res) => {
             }
         }
     ]).toArray();
+    
 
       res.status(200).send(results); // Send the results as the response
 } catch (error) {
@@ -565,7 +566,6 @@ query.DCode = talukaRecord.DCode.toString();
     // Call the searchRecordList API to fetch records
     const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
     const records = searchResponse.data;
-  console.log("SEARCH DATA",searchResponse.data);
 
     const doc = new PDFDocument();
     let filename = 'my-document.pdf';

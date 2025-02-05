@@ -53,7 +53,7 @@ router.get('/UserDetailList', async (req, res) => {
 });
 
 router.post('/MUserMaster', async (req, res) => {
-  console.log(req.body);
+
   const { name, username, password, dcode, officeId, branchId, RoleId } = req.body;
 
     const salt = await bcrypt.genSalt(10)
@@ -77,9 +77,10 @@ router.post('/MUserMaster', async (req, res) => {
         RoleId: RoleId  // Role is set here
 
       })
-      console.log(user,'user for register');
+ 
       const result = await user.save()
-      console.log(result,'user result for register');
+
+
       //JWT Token 
       
       //const { _id, username,RoleId } = await result.toJSON();
@@ -102,7 +103,7 @@ router.post('/MUserMaster', async (req, res) => {
     res.json({ message: "Registration successful",
        user: { _id: user._id, username: user.username, RoleId: user.RoleId ,token:token,
          dcode:dcode,officeId:officeId,branchId:branchId } });
-    console.log(user);
+
     }
   });
   
@@ -154,9 +155,9 @@ router.post('/MUserMaster', async (req, res) => {
     try {
       // Verify the JWT token
       const decoded = jwt.verify(token, 'secret_jwt');
-      console.log('decoded',decoded);
+  
       const user = await User.findById(decoded._id); // Find user by decoded ID
-      console.log('user for change pawd',user);
+
       if (!user) {
         return res.status(404).send({ message: 'User not found' });
       }

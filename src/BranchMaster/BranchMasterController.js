@@ -103,7 +103,6 @@ router.get("/BranchModelList/:dcode", async (req, res) => {
   try {
     const dcode = req.params.dcode;
     const Pera_dcode = Number(req.params.dcode);
-    console.log('branch list: dcode', dcode);
     const db = await connectToMongoClient();
     //  const collection = db.collection("BranchMaster"); // Get the collection
 
@@ -147,7 +146,6 @@ router.get("/BranchModelList/:dcode", async (req, res) => {
       }
     ]).toArray();
 
-    console.log("Result:", result);
 
     res.status(200).json(result);
 

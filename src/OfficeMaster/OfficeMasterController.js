@@ -246,9 +246,7 @@ router.put('/UpdateOffice/:_id', async (req, res) => {
   try {
 
     const { _id } = req.params; // Destructure _id from req.params
-    console.log("Request Parameters:", req.params);
       const updatedData = req.body;
-      console.log("result for updatedData",updatedData);
       delete updatedData._id;  // Remove _id from updatedData
 
     // Validate _id format
@@ -270,7 +268,6 @@ router.put('/UpdateOffice/:_id', async (req, res) => {
           { $set: updatedData }, // Update data
           { returnDocument: 'after' } // Return updated document
       );
-      console.log("result for updatedData", result.value );
 
       res.json({ message: "Record updated successfully.", data:result });
   } catch (err) {
