@@ -13,7 +13,7 @@ const docUpload = require('./src/docUpload/docUploadController');
 const UserMaster = require('./src/UserMaster/UserMasterController');
 const branchmaster = require('./src/BranchMaster/BranchMasterController');
 const officemaster = require('./src/OfficeMaster/OfficeMasterController');
-const imagedata= require('./src/ImageData/ImageData');
+
 const corsOptions = {
   origin: 'http://10.154.2.172:4200', // Replace with the origin of your Angular app
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -90,7 +90,6 @@ connectToMongoose() // First establish mongoose connection
 mongoose.set('strictQuery', false);
 app.use("/api",route)
 app.use("/api",DataEntry)
-app.use("/api",imagedata)
 app.use("/api",docUpload)
 app.use("/api",UserMaster)
 app.use("/api",branchmaster)
