@@ -564,7 +564,8 @@ query.DCode = talukaRecord.DCode.toString();
   // ]);
   
     // Call the searchRecordList API to fetch records
-    const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
+  //  const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
+    const searchResponse = await axios.get(`http://stagingrmsapp.gujarat.gov.in/rms/api/searchRecordList`, { params: queryParams });
     const records = searchResponse.data;
 
     const doc = new PDFDocument();
