@@ -20,7 +20,6 @@ router.get("/DistrictList", async (req, res) => {
 });
 //End
 
-
 router.get("/OfficeListbyId/:did", async (req, res) => {
   try {
 
@@ -60,7 +59,6 @@ router.get("/BranchListbyID/:idno", async (req, res) => {
   }
 });
 
-
 router.post('/InsertBranch', async (req, res) => {
   try {
     const { districtId, officeId, BranchName } = req.body;
@@ -95,7 +93,6 @@ router.post('/InsertBranch', async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error: error.message });
   }
 });
-
 
 // Retrieve all users from the database.
 router.get("/BranchModelList/:dcode", async (req, res) => {
@@ -153,7 +150,6 @@ router.get("/BranchModelList/:dcode", async (req, res) => {
     res.status(404).json({ message: error.message });
   }
 });
-
 
 // Define your API endpoint
 router.get("/BranchList", async (req, res) => {

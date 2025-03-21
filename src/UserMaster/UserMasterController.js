@@ -7,24 +7,7 @@ const router = Router()
 const multer = require('multer');
 const storage =multer.memoryStorage()
 const upload = multer({storage:storage})
-// const MongoClient = require('mongodb').MongoClient;
-// const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
-// const dbName = "RMS";
-
 const { connectToMongoClient } = require('../../dbconfig');
-
-// // Create a reusable MongoDB client
-// const client = new MongoClient(connectionString);
-
-// // Connect to the MongoDB database
-// client.connect()
-//   .then(() => {
-//     console.log('Connected to the database');
-//   })
-//   .catch(err => {
-//     console.error('Error connecting to the database:', err);
-//   });
-
 
 router.get("/RoleList", async (req, res) => {
   try {
@@ -138,6 +121,7 @@ router.post('/MUserMaster', async (req, res) => {
 
     })
   });
+  
   router.post("/logout", (req, res) => {
     // Clear the jwt cookie by setting it with maxAge: 0
     res.cookie("jwt", "", { maxAge: 0, httpOnly: true });

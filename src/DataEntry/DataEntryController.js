@@ -1,32 +1,15 @@
 const { Router } = require('express')
 const DataEntry = require('../DataEntry/DataEntryModel')
+const DataEntry_H =require('../DataEntry/DataEntryModel_H')
 const router = Router()
 const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios'); // Import axios for making API calls
 const { connectToMongoClient } = require('../../dbconfig');
-// const MongoClient = require('mongodb').MongoClient;
-// const connectionString = "mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin";
-// const dbName = "RMS";
-
-// // Create a reusable MongoDB client
-// const client = new MongoClient(connectionString);
-
-// // Connect to the MongoDB database
-// client.connect()
-//   .then(() => {
-//     console.log('Connected to the database');
-//   })
-//   .catch(err => {
-//     console.error('Error connecting to the database:', err);
-//   });
-
 
 router.get("/TalukaListFromDist", async (req, res) => {
     try {
-      
-
       const db = await connectToMongoClient();
       const collection = db.collection("TalukaMaster"); 
 
@@ -68,7 +51,6 @@ router.get("/TalukaListFromDist", async (req, res) => {
     }
   });
 
-
   router.get("/VillageListbyID/:dcode/:TCode", async (req, res) => {
     try {
       // Convert req.params.did to a number if dcode is a number in MongoDB
@@ -90,6 +72,9 @@ router.get("/TalukaListFromDist", async (req, res) => {
   });
 //Data Enter
 router.post('/InsertRecord', async (req, res) => {
+ // const { userId, createdBy } = req.body;  // Get createdBy from request
+
+
 
     let Year             = req.body.Year       
     let IssueDate        = req.body.IssueDate  
@@ -112,6 +97,16 @@ router.post('/InsertRecord', async (req, res) => {
     let TotalPage        = req.body.TotalPage  
     let anyDetail        = req.body.anyDetail  
     let documentId       = req.body.documentId 
+    let createdBy =req.body.createdBy
+   // let ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        // Extract the IP address
+        // Extract the correct IP address
+        let ipAddress = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress || req.socket.remoteAddress;
+
+        // Remove IPv6 prefix if needed (::ffff:)
+        if (ipAddress.includes('::ffff:')) {
+            ipAddress = ipAddress.split('::ffff:')[1];
+        }
 
     const dataentry = new DataEntry({
 
@@ -135,8 +130,10 @@ router.post('/InsertRecord', async (req, res) => {
         PostPage 	 :PostPage 	   ,
         TotalPage    :TotalPage    ,
         anyDetail    :anyDetail    ,
-        documentId   :documentId   
-
+        documentId   :documentId   ,
+        createdBy:createdBy,
+        createdOn: Date.now(),  // ✅ Store timestamp
+        ipAddress:ipAddress
     })
     const result = await dataentry.save()
 
@@ -144,57 +141,106 @@ router.post('/InsertRecord', async (req, res) => {
         message: "success",
         dataentry: result
     });
-});
+ });
 
-//Data Update
 router.put('/UpdateRecord/:_id', async (req, res) => {
-    try {
-                // Check if the request body is empty
-                if (!req.body) {
-                    return res.status(400).json({
-                        message: "Data to update cannot be empty!"
-                    });
-                }
-
-       
-        const _id = req.params._id;
-        const updatedData = req.body;
-        // Update the record using Mongoose
-        const updatedRecord = await DataEntry.findByIdAndUpdate(_id, updatedData, { new: true });
-        if (!updatedRecord) {
-            return res.status(404).json({ message: "Record not found." });
-        }
-
-        res.json({ message: "Record updated successfully.", data: updatedRecord });
-
-    } catch (err) {
-        // Handle any errors that occur during the update process
-        res.status(500).json({
-            message: err.message || "An error occurred while updating the record."
-        });
+  try {
+    if (!req.body) {
+      return res.status(400).json({ message: "Data to update cannot be empty!" });
     }
+
+    const _id = req.params._id;
+    const { updatedBy } = req.body;
+    const updatedOn = new Date();
+
+    let ipAddress = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress || req.socket.remoteAddress;
+    if (ipAddress.includes('::ffff:')) {
+      ipAddress = ipAddress.split('::ffff:')[1];
+    }
+
+    // Find the existing record
+    const existingRecord = await DataEntry.findById(_id);
+    if (!existingRecord) {
+      return res.status(404).json({ message: "Record not found." });
+    }
+
+    // Save history without changing `_id`
+    const recordInsertHistory = new DataEntry_H({
+      originalId: existingRecord._id,  // ✅ Reference to the original record
+      recordData: existingRecord.toObject(), // ✅ Save entire record as an object
+      action: "UPDATED",
+      updatedBy,
+      ipAddress,
+      updatedOn,
+      historyDate: new Date() // ✅ Add current timestamp for history record
+    });
+
+    await recordInsertHistory.save();
+
+
+    // Update the record
+    const updatedData = {
+      ...req.body,
+      updatedBy,
+      updatedOn,
+      ipAddress
+    };
+    console.log("updatedData", updatedData)
+    const updatedRecord = await DataEntry.findByIdAndUpdate(_id, updatedData, { new: true });
+    console.log("updatedData", updatedRecord)
+    res.json({ message: "Record updated successfully.", data: updatedRecord });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message || "An error occurred while updating the record." });
+  }
 });
 
 //Data Delete
 router.delete('/DeleteRecord/:_id', async (req, res) => {
-    try {
-        var _id = req.params._id
+  try {
+    var _id = req.params._id
 
-        if (!_id) {
-            return res.status(400).json({ message: 'Missing _id field in request body' });
-        }
-
-        const deletedRecord = await DataEntry.findByIdAndDelete(_id);
-
-        if (!deletedRecord) {
-            return res.status(404).json({ message: 'Record not found' });
-        }
-
-        return res.json({ message: 'Record deleted successfully' });
+    if (!_id) {
+      return res.status(400).json({ message: 'Missing _id field in request body' });
     }
-    catch (error) {
-        return res.status(500).json({ message: error.message });
+    const { updatedBy } = req.body;
+    const updatedOn = new Date();
+    // Extract the correct IP address
+    let ipAddress = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress || req.socket.remoteAddress;
+    if (ipAddress.includes('::ffff:')) {
+      ipAddress = ipAddress.split('::ffff:')[1];
     }
+
+    // Find the existing record
+    const existingRecord = await DataEntry.findById(_id);
+    if (!existingRecord) {
+      return res.status(404).json({ message: "Record not found." });
+    }
+
+    // Save history without changing `_id`
+    const recordInsertHistory = new DataEntry_H({
+      originalId: existingRecord._id,  // ✅ Reference to the original record
+      recordData: existingRecord.toObject(), // ✅ Save entire record as an object
+      action: "Deleted",
+      updatedBy,
+      ipAddress,
+      updatedOn,
+      historyDate: new Date() // ✅ Add current timestamp for history record
+    });
+
+    await recordInsertHistory.save();  // ✅ Save history record
+
+    const deletedRecord = await DataEntry.findByIdAndDelete(_id);
+
+    if (!deletedRecord) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    return res.json({ message: 'Record deleted successfully' });
+  }
+  catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
 });
 
 router.get('/FindRecordbyID/:_id', async (req, res) => {
@@ -316,7 +362,6 @@ router.get('/RecordList', async (req, res) => {
     throw error;
 }
 });
-
 
 router.get("/searchRecordList", async (req, res) => {
     try {
@@ -486,86 +531,15 @@ query.DCode = talukaRecord.DCode.toString();
     }
   });
   
-
-
-
   router.get("/generatepdf", async (req, res) => {
 
     // Construct the query parameters from the request
     const queryParams = req.query; // Directly get the query parameters
-  //   const records = await DataEntry.aggregate([
-  //     {
-  //         $match: queryParams, // Your filter criteria
-  //     },
-  //     {
-  //       $lookup: {
-  //         from: 'TalukaMaster', // The collection to join with
-  //         let: { localTCode: '$Taluka', localDCode: '$DCode' }, // Define variables for local fields
-  //         pipeline: [
-  //             {
-  //                 $match: {
-  //                     $expr: {
-  //                         $and: [
-  //                             { $eq: ['$TCode', '$$localTCode'] }, // Match TCode
-  //                             { $eq: ['$DCode', '$$localDCode'] }  // Match DCode
-  //                         ]
-  //                     }
-  //                 }
-  //             },
-  //             {
-  //                 $project: { _id: 0, name: 1 } // Select only the fields you need
-  //             }
-  //         ],
-  //         as: 'TalukaDetails' // Output array field for matched documents
-  //     }
-  //   },
 
-  //     {
-  //       $lookup: {
-  //         from: 'VillageMaster',
-  //         let: { dCode: '$DCode', taluka: '$Taluka', village: '$Village' },
-  //         pipeline: [
-  //             {
-  //                 $match: {
-  //                     $expr: {
-  //                         $and: [
-  //                             // { $eq: ['$dcode', '$$dCode'] },
-  //                             // { $eq: ['$tcode', '$$taluka'] },
-  //                             // { $eq: ['$dtv', '$$village'] }
 
-  //                             { $eq: [{ $toString: '$dcode' }, '$$dCode'] },  // Type casting
-  //                             { $eq: [{ $toString: '$tcode' }, '$$taluka'] }, // Type casting
-  //                             { $eq: [{ $toString: '$dtv' }, '$$village'] }   // Type casting
-  //                         ]
-  //                     }
-  //                 }
-  //             }
-  //         ],
-  //         as: 'villageDetails'
-  //     }
-  //     },
-  //     {
-  //       $lookup: {
-  //           from: 'BranchMaster', // The name of the Branch collection
-  //           localField: 'Branch',
-  //           foreignField: '_id',
-  //           as: 'BranchDetails',
-  //       },
-  //   },
-  //     {
-  //         $project: {
-  //             Year: 1,
-  //             Branch: { $arrayElemAt: ['$BranchDetails.BRANCH', 0] },
-  //             Village: { $arrayElemAt: ['$villageDetails.vname_g', 0] },
-  //             Taluka: { $arrayElemAt: ['$TalukaDetails.TalName_G', 0] },
-  //             // Other fields...
-  //         },
-  //     },
-  // ]);
-  
     // Call the searchRecordList API to fetch records
-  //  const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
-    const searchResponse = await axios.get(`http://stagingrmsapp.gujarat.gov.in/rms/api/searchRecordList`, { params: queryParams });
+   const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
+  //  const searchResponse = await axios.get(`http://stagingrmsapp.gujarat.gov.in/rms/api/searchRecordList`, { params: queryParams });
     const records = searchResponse.data;
 
     const doc = new PDFDocument();

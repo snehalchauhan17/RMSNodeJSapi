@@ -2,41 +2,7 @@ const mongoose = require('mongoose')
 const { Schema } = mongoose;
 //const docUpload =require('../docUpload/docUploadModel');
 const { ObjectId } = require('mongodb');
-// const dataentryschema =mongoose.Schema(
-//     {
 
-//     Year        :           { type: String, required: true },
-//     IssueDate   :           { type: String, required: true },
-//     Branch      :         	{ type: String, required:true  },
-//     Category    :       	{ type: String },
-//     Name        :           { type: String },
-//     Address     :        	{ type: String },
-//     Subject     :        	{ type: String },
-//     HukamNo     :        	{ type: String },
-//     HukamDate   :        	{ type: String },
-//     DCode      :         	{ type: String },
-//     Taluka      :         	{ type: String },
-//     Village     :        	{ type: String },
-//     SurveyNo 	:           { type: String },
-//     CompactorNo :           { type: String },
-//     PotlaNo     :           { type: String },
-//     FeristNo 	:           { type: String },
-//     NotePage 	:           { type: String },
-//     PostPage 	:           { type: String },
-//     TotalPage   :           { type: String },
-//     anyDetail   : 		    { type: String },
-// 	documentId  :           { type:ObjectId},
-//     // docId: {
-//     //     type: mongoose.SchemaTypes.ObjectId,
-//     //     ref: 'docUpload',
-//     //     required: true
-//     // }
-//     },
-//     {
-//         timestamps : true
-//     }
-
-// )
 const dataentryschema = new Schema(
     {
       Year: { type: String},
@@ -60,7 +26,13 @@ const dataentryschema = new Schema(
       TotalPage: { type: Number },  // Change to Number type
       anyDetail: { type: String },
       documentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Document' },  // Reference to another collection
-  
+     // Existing fields...
+     createdBy: { type: String },  // Stores the username
+     createdOn: { type: Date, default: Date.now },  // Stores creation timestamp
+     updatedBy: { type: String },  // Stores the username
+    updatedOn: { type: Date, default: Date.now },  // Stores creation timestamp
+     ipAddress: { type: String }  // Stores the user's IP address
+ 
       // If you want to link another document (optional, uncomment if needed)
       // docId: { 
       //     type: mongoose.Schema.Types.ObjectId, 

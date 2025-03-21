@@ -5,8 +5,6 @@ const { ObjectId } = require('mongodb');  // Import ObjectId
 const router = Router();
 const { connectToMongoClient } = require('../../dbconfig');
 
-
-
 router.post("/InsertOffice", async (req, res) => {
   const { name, OTYP, dcode } = req.body;
 
@@ -140,11 +138,6 @@ router.get("/OfficeMasterList", async (req, res) => {
     }
   });
   
-
-
-
-
-
 // //Data Delete
 // router.delete('/DeleteOffice/:_id', async (req, res) => {
 //   try {
@@ -190,7 +183,6 @@ router.delete('/DeleteOffice/:_id', async (req, res) => {
       return res.status(500).json({ message: error.message });
   }
 });
-
 
 // router.get('/FindOfficebyId/:_id', async (req, res) => {
 

@@ -97,3 +97,36 @@ app.use("/api",officemaster)
 app.options('*', cors()); 
 
 
+// ----------------- Error Handling Middleware -----------------
+
+// 404 Error - Route Not Found
+app.use((req, res, next) => {
+  res.status(404).json({
+    error: {
+      message: "Requested resource not found",
+      status: 404,
+    },
+  });
+});
+
+// Global Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(`Error occurred: ${err.message}`);
+
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || "Internal Server Error",
+      status: err.status || 500,
+    },
+  });
+});
+
+// Handle Uncaught Exceptions & Promise Rejections
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1); // Exit the process with error
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
