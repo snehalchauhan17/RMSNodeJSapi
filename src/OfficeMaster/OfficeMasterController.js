@@ -1,11 +1,11 @@
 const { Router } = require('express');
 //const MongoClient = require('mongodb').MongoClient;
 const { ObjectId } = require('mongodb');  // Import ObjectId
-
+const authenticateToken = require("../authMiddleware");
 const router = Router();
 const { connectToMongoClient } = require('../../dbconfig');
 
-router.post("/InsertOffice", async (req, res) => {
+router.post("/InsertOffice",authenticateToken, async (req, res) => {
   const { name, OTYP, dcode } = req.body;
 
   try {
@@ -52,7 +52,7 @@ router.post("/InsertOffice", async (req, res) => {
 });
 
 // Define your API endpoint
-router.get("/BranchList", async (req, res) => {
+router.get("/BranchList",authenticateToken, async (req, res) => {
   try {
     
     const db = await connectToMongoClient();
@@ -65,7 +65,7 @@ router.get("/BranchList", async (req, res) => {
   }
 });
 
-router.get("/OfficeMasterList", async (req, res) => {
+router.get("/OfficeMasterList",authenticateToken, async (req, res) => {
     try {
       
 
@@ -111,7 +111,7 @@ router.get("/OfficeMasterList", async (req, res) => {
     }
   });
 
-  router.get('/FindOfficebyId/:_id', async (req, res) => {
+  router.get('/FindOfficebyId/:_id',authenticateToken, async (req, res) => {
     try {
      
         const _id = req.params._id.toString();
@@ -158,7 +158,7 @@ router.get("/OfficeMasterList", async (req, res) => {
 //   }
 // });
 
-router.delete('/DeleteOffice/:_id', async (req, res) => {
+router.delete('/DeleteOffice/:_id',authenticateToken, async (req, res) => {
   try {
    
       const _id = req.params._id;
@@ -234,7 +234,7 @@ router.delete('/DeleteOffice/:_id', async (req, res) => {
 //   }
 // });
 
-router.put('/UpdateOffice/:_id', async (req, res) => {
+router.put('/UpdateOffice/:_id', authenticateToken,async (req, res) => {
   try {
 
     const { _id } = req.params; // Destructure _id from req.params

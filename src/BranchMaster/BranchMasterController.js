@@ -3,7 +3,7 @@ const { Router } = require('express');
 const router = Router();
 // const { connectToMongoose } = require('../dbConfig');
 const { connectToMongoClient } = require('../../dbconfig');
-
+const authenticateToken = require("../authMiddleware");
 //District List For Registration Start and OfficeInsert
 router.get("/DistrictList", async (req, res) => {
   try {
@@ -59,7 +59,7 @@ router.get("/BranchListbyID/:idno", async (req, res) => {
   }
 });
 
-router.post('/InsertBranch', async (req, res) => {
+router.post('/InsertBranch',authenticateToken, async (req, res) => {
   try {
     const { districtId, officeId, BranchName } = req.body;
     const db = await connectToMongoClient();
@@ -95,7 +95,7 @@ router.post('/InsertBranch', async (req, res) => {
 });
 
 // Retrieve all users from the database.
-router.get("/BranchModelList/:dcode", async (req, res) => {
+router.get("/BranchModelList/:dcode",authenticateToken, async (req, res) => {
 
   try {
     const dcode = req.params.dcode;
@@ -152,7 +152,7 @@ router.get("/BranchModelList/:dcode", async (req, res) => {
 });
 
 // Define your API endpoint
-router.get("/BranchList", async (req, res) => {
+router.get("/BranchList",authenticateToken, async (req, res) => {
   try {
 
     const db = await connectToMongoClient();
@@ -164,7 +164,5 @@ router.get("/BranchList", async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
-
-
 
 module.exports = router;

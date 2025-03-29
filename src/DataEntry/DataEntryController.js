@@ -7,8 +7,8 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios'); // Import axios for making API calls
 const { connectToMongoClient } = require('../../dbconfig');
-
-router.get("/TalukaListFromDist", async (req, res) => {
+const authenticateToken = require("../authMiddleware");
+router.get("/TalukaListFromDist",authenticateToken, async (req, res) => {
     try {
       const db = await connectToMongoClient();
       const collection = db.collection("TalukaMaster"); 
@@ -51,7 +51,7 @@ router.get("/TalukaListFromDist", async (req, res) => {
     }
   });
 
-  router.get("/VillageListbyID/:dcode/:TCode", async (req, res) => {
+  router.get("/VillageListbyID/:dcode/:TCode", authenticateToken,async (req, res) => {
     try {
       // Convert req.params.did to a number if dcode is a number in MongoDB
       const tcode = parseInt(req.params.TCode);
@@ -71,7 +71,7 @@ router.get("/TalukaListFromDist", async (req, res) => {
     }
   });
 //Data Enter
-router.post('/InsertRecord', async (req, res) => {
+router.post('/InsertRecord', authenticateToken,async (req, res) => {
  // const { userId, createdBy } = req.body;  // Get createdBy from request
 
 
@@ -143,7 +143,7 @@ router.post('/InsertRecord', async (req, res) => {
     });
  });
 
-router.put('/UpdateRecord/:_id', async (req, res) => {
+router.put('/UpdateRecord/:_id',authenticateToken, async (req, res) => {
   try {
     if (!req.body) {
       return res.status(400).json({ message: "Data to update cannot be empty!" });
@@ -185,9 +185,7 @@ router.put('/UpdateRecord/:_id', async (req, res) => {
       updatedOn,
       ipAddress
     };
-    console.log("updatedData", updatedData)
     const updatedRecord = await DataEntry.findByIdAndUpdate(_id, updatedData, { new: true });
-    console.log("updatedData", updatedRecord)
     res.json({ message: "Record updated successfully.", data: updatedRecord });
 
   } catch (err) {
@@ -196,7 +194,7 @@ router.put('/UpdateRecord/:_id', async (req, res) => {
 });
 
 //Data Delete
-router.delete('/DeleteRecord/:_id', async (req, res) => {
+router.delete('/DeleteRecord/:_id',authenticateToken, async (req, res) => {
   try {
     var _id = req.params._id
 
@@ -243,7 +241,7 @@ router.delete('/DeleteRecord/:_id', async (req, res) => {
   }
 });
 
-router.get('/FindRecordbyID/:_id', async (req, res) => {
+router.get('/FindRecordbyID/:_id',authenticateToken, async (req, res) => {
 
     let user = ''
     try {
@@ -262,7 +260,7 @@ router.get('/FindRecordbyID/:_id', async (req, res) => {
 })
 
 // Retrieve all users from the database.
-router.get('/RecordList', async (req, res) => {
+router.get('/RecordList',authenticateToken, async (req, res) => {
 
     try {
       const db = await connectToMongoClient();
@@ -363,7 +361,7 @@ router.get('/RecordList', async (req, res) => {
 }
 });
 
-router.get("/searchRecordList", async (req, res) => {
+router.get("/searchRecordList",authenticateToken, async (req, res) => {
     try {
   
       const db = await connectToMongoClient();
@@ -531,15 +529,22 @@ query.DCode = talukaRecord.DCode.toString();
     }
   });
   
-  router.get("/generatepdf", async (req, res) => {
+  router.get("/generatepdf",authenticateToken, async (req, res) => {
 
     // Construct the query parameters from the request
     const queryParams = req.query; // Directly get the query parameters
 
 
     // Call the searchRecordList API to fetch records
-   const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
+   //const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
   //  const searchResponse = await axios.get(`http://stagingrmsapp.gujarat.gov.in/rms/api/searchRecordList`, { params: queryParams });
+
+  const token = req.headers.authorization; // Extract token from request
+const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, {
+  params: queryParams,
+  headers: { Authorization: token }
+});
+
     const records = searchResponse.data;
 
     const doc = new PDFDocument();

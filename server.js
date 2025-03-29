@@ -1,19 +1,28 @@
-
+require('dotenv').config();
 const express = require('express')
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser')
-var route = require('./route/routes');
+const helmet = require("helmet");
+
 const { connectToMongoose, connectToMongoClient } = require('./dbconfig');
 
-//const multer = require('multer')
-const app = express()
+// Import Routes
+var route = require('./route/routes');
 const DataEntry = require('./src/DataEntry/DataEntryController'); 
 const docUpload = require('./src/docUpload/docUploadController'); 
 const UserMaster = require('./src/UserMaster/UserMasterController');
 const branchmaster = require('./src/BranchMaster/BranchMasterController');
 const officemaster = require('./src/OfficeMaster/OfficeMasterController');
 
+const app = express()
+const port = process.env.PORT || 3000;
+
+// ------------------ 1. Security & Middleware ------------------
+// Secure HTTP Headers
+app.use(helmet());
+
+// Enable CORS with specific origin
 const corsOptions = {
   origin: 'http://10.154.2.172:4200', // Replace with the origin of your Angular app
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -21,16 +30,24 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
-app.use(cookieParser())
-app.use(express.static('public'))
-app.use(express.urlencoded({extended:false}))
-// app.use('view engine','ejs')
+
+// Parse JSON & URL-encoded requests
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Cookie Handling
+app.use(cookieParser());
+
+// Remove X-Powered-By header (to hide Express usage)
+app.disable("x-powered-by");
+
+// Static File Serving
+app.use(express.static("public"));
 
 
-const port = process.env.PORT || 3000;
-
+// ------------------ 2. Database Connection ------------------
 // Establish the MongoDB connection
+mongoose.set("strictQuery", false);
 connectToMongoose() // First establish mongoose connection
   .then(() => connectToMongoClient()) // Then establish MongoClient connection
   .then(() => {
@@ -43,51 +60,7 @@ connectToMongoose() // First establish mongoose connection
     console.error('Failed to start the server due to database connection error:', err);
   });
 
-
-
-//mongodb://sa:sa123@10.154.2.131:27017/
-//mongoose.connect("mongodb://localhost:27017/RMS")
-
-// const mongoURI = 'mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin';
-// const port = process.env.PORT || 3000;
-
-// const options = {
-
-//   dbName: 'RMS', // Specify the database name here
-// };
-
-// Connect to MongoDB
-// mongoose.connect(mongoURI, options)
-//   .then(() => {
-//     console.log('Connected to MongoDB');
-
-//     // Start the server after successful DB connection
-//     app.listen(port, '0.0.0.0', () => {
-//       console.log(`Server running at http://10.154.2.172:${port}/`);
-//     });
-//   })
-//   .catch(err => {
-//     console.error("Error connecting to the database:", err);
-//   });
-// Options to pass to the MongoDB driver during connection setup
-
-
-// mongoose.connect(mongoURI, options)
-// .then(()=>{
-//           console.log('connect to MongoDB')
-//         // app.listen(3001, ()=> {
-//         //     console.log('Node API app is running on port 3001')
-//         // })
-//         app.listen(port, '10.154.2.172', () => {
-//           console.log(`Server running at http://10.154.2.172:${port}/`);
-//         })
-//     }).catch((error)=>{
-//         console.log(error)
-//     });
-    
-   
-
-mongoose.set('strictQuery', false);
+// ------------------ 3. Routes ------------------
 app.use("/api",route)
 app.use("/api",DataEntry)
 app.use("/api",docUpload)
@@ -96,8 +69,55 @@ app.use("/api",branchmaster)
 app.use("/api",officemaster)
 app.options('*', cors()); 
 
+// ------------------ 4. Security Headers Middleware ------------------
+// Enforce HTTPS
+app.use((req, res, next) => {
+  if (!req.secure) {
+    return res.status(403).json({ message: "HTTPS is required" });
+  }
+  next();
+});
 
-// ----------------- Error Handling Middleware -----------------
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+    //  scriptSrc: ["'self'", "https://trusted-cdn.com"], // Allow trusted scripts
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      upgradeInsecureRequests: [],
+    },
+  })
+);
+
+// Content Security Policy (CSP)
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'");
+  next();
+});
+
+
+// ------------------ 5. Secure Cookies Middleware ------------------
+
+// Global function to set secure cookies
+app.use((req, res, next) => {
+  res.cookie('sessionId', 'randomValue', {
+    httpOnly: true,        // Prevents JavaScript access
+    secure: true,          // Ensures cookies are sent only over HTTPS
+    sameSite: 'Strict',    // Prevents CSRF attacks
+    maxAge: 24 * 60 * 60 * 1000 // Expires in 1 day
+  });
+
+  next();
+});
+
+// ✅ Function to Generate Secure Random Session ID
+function generateSessionId() {
+  return crypto.randomBytes(32).toString("hex"); // 64-character random ID
+}
+
+// -----------------6. Error Handling Middleware -----------------
 
 // 404 Error - Route Not Found
 app.use((req, res, next) => {
@@ -120,6 +140,11 @@ app.use((err, req, res, next) => {
     },
   });
 });
+
+
+
+// ------------------ 7. Handle Uncaught Errors ------------------
+
 
 // Handle Uncaught Exceptions & Promise Rejections
 process.on('uncaughtException', (err) => {

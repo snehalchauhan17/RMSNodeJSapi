@@ -5,13 +5,23 @@ const jwt = require('jsonwebtoken')
 const User = require('../UserMaster/MUserMasterModel')
 const router = Router()
 const multer = require('multer');
-const storage =multer.memoryStorage()
-const upload = multer({storage:storage})
+const storage = multer.memoryStorage()
+const upload = multer({ storage: storage })
+const argon2 = require("argon2");  // Secure hashing
 const { connectToMongoClient } = require('../../dbconfig');
+const crypto = require('crypto');
+const algorithm = 'aes-256-cbc';
+const secretKey = process.env.DATA_SECRET; // Store securely in .env
+const iv = crypto.randomBytes(16);
+const rateLimit = require("express-rate-limit");
+const { body, validationResult } = require("express-validator");
+const authenticateToken = require("../authMiddleware");
+const failedAttempts = new Map(); // Store failed login attempts per user
+const CryptoJS = require("crypto-js");
 
 router.get("/RoleList", async (req, res) => {
   try {
-   
+
     const db = await connectToMongoClient();
     const collection = db.collection("RoleMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection
@@ -24,170 +34,274 @@ router.get("/RoleList", async (req, res) => {
 });
 
 // Retrieve all users from the database.
-router.get('/UserDetailList', async (req, res) => {
+router.get('/UserDetailList', authenticateToken, async (req, res) => {
 
   try {
-      const user = await User.find();
-      -
-          res.status(200).json(user);
+    const user = await User.find();
+    -
+      res.status(200).json(user);
   } catch (error) {
-      res.status(404).json({ message: error.message });
+    res.status(404).json({ message: error.message });
   }
 });
 
-router.post('/MUserMaster', async (req, res) => {
+// Function to generate JWT tokens
+const generateAccessToken = (user) => {
+  return jwt.sign(
+    { _id: user._id, username: user.username, RoleId: user.RoleId },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: "15m" } // Access token expires in 15 min
+  );
+};
 
-  const { name, username, password, dcode, officeId, branchId, RoleId } = req.body;
+const generateRefreshToken = (user) => {
+  return jwt.sign(
+    { _id: user._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: "7d" } // Refresh token lasts 7 days
+  );
+};
 
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(password, salt)
-  
-    const existingUser  = await User.findOne({ username: username })
-    if (existingUser) {
-      return res.status(400).send({
-        message: "Username is already Created"
-  
-      })
+// User Registration Route
+router.post(
+  "/MUserMaster",
+  [
+    body("name").trim().notEmpty().escape().isString().withMessage("Name is required"),
+    body("username").trim().notEmpty().isString().withMessage("Username is required"),
+    body("password")
+      .isLength({ min: 8 }).withMessage("Password must be at least 8 characters")
+      .isStrongPassword().withMessage("Password must contain uppercase, lowercase, number, and special character"),
+    body("dcode").toInt().isInt(),
+    body("officeId").toInt().isInt(),
+    body("branchId").toInt().isInt(),
+    body("RoleId").toInt().isInt(),
+  ],
+  async (req, res) => {
+
+    // Validation Errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
-    else {
-      const user = new User({
-        name: name,
-        username: username,
-        password: hashedPassword,
-        dcode: dcode,
-        officeId: officeId,
-        branchId: branchId,
-        RoleId: RoleId  // Role is set here
 
-      })
- 
-      const result = await user.save()
-
-
-      //JWT Token 
-      
-      //const { _id, username,RoleId } = await result.toJSON();
-     // const token = jwt.sign({  _id: _id,username: username, RoleId: RoleId }, 'secret_jwt', { expiresIn: '1h' });
-      const token = jwt.sign(
-        { _id: result._id, username: result.username, RoleId: result.RoleId },
-        'secret_jwt',
-        { expiresIn: '1h' }
-      );
-  
-      res.cookie("jwt", token, {
-        httpOnly: true,
-        maxAge: 2 * 60 * 60 * 1000
-      });
-      // res.send({
-      //   message: "Registration successful",
-      //   user: { _id: user._id, username: user.username, RoleId: user.RoleId ,token:token} // Responding with relevant user info
-  
-      // })
-    res.json({ message: "Registration successful",
-       user: { _id: user._id, username: user.username, RoleId: user.RoleId ,token:token,
-         dcode:dcode,officeId:officeId,branchId:branchId } });
-
-    }
-  });
-  
-  
-  router.post("/login", async (req, res) => {
-    const { username, password,dcode,officeId ,branchId} = req.body;
-    // Check if user exists
-    const user = await User.findOne({ username: username})
-    if (!user) return res.status(400).send({ message: "Invalid username or password" });
-     
-    // Validate password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return res.status(400).send({ message: "Invalid username or password" });
-    
-     // Generate JWT with RoleId,username included
-    const token = jwt.sign(
-      { _id: user._id, username: user.username, RoleId: user.RoleId ,dcode:user.dcode,officeId:user.officeId,branchId:user.branchId},
-      'secret_jwt',
-      { expiresIn: '1h' }
-    );
-  
-  // Set HTTP-only cookie with JWT token
-    res.cookie("jwt", token, {
-      httpOnly: true,
-      maxAge: 2 * 60 * 60 * 1000
-    })
-
-     // Send success message along with user data if needed (without sensitive data)
-    res.send({
-      message: "Login successful",
-      user: { _id: user._id, username: user.username, RoleId: user.RoleId ,token:token, dcode:dcode,officeId:officeId,branchId:branchId} // Responding with relevant user info
-
-    })
-  });
-  
-  router.post("/logout", (req, res) => {
-    // Clear the jwt cookie by setting it with maxAge: 0
-    res.cookie("jwt", "", { maxAge: 0, httpOnly: true });
-  
-    // Respond with a success message
-    res.send({ message: "Logged out successfully" });
-  });
-
-  // Change Password
- // const jwt = require('jsonwebtoken'); // Ensure JWT is imported
-
-  router.post('/ChangePassword', async (req, res) => {
-    const { token, oldPassword, newPassword } = req.body;
-  
     try {
-      // Verify the JWT token
-      const decoded = jwt.verify(token, 'secret_jwt');
-  
-      const user = await User.findById(decoded._id); // Find user by decoded ID
+      const { name, username, password, dcode, officeId, branchId, RoleId } = req.body;
 
-      if (!user) {
-        return res.status(404).send({ message: 'User not found' });
+      // Check if the username already exists
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({ message: "Username is already taken" });
+      }
+
+      // Hash password using Argon2
+      const hashedPassword = await argon2.hash(password, { type: argon2.argon2id });
+
+      // Create a new user
+      const user = new User({
+        name,
+        username,
+        password: hashedPassword,
+        dcode,
+        officeId,
+        branchId,
+        RoleId,
+      });
+
+      // Save user to DB
+      const savedUser = await user.save();
+
+      // Generate Tokens
+      const accessToken = generateAccessToken(savedUser);
+      const refreshToken = generateRefreshToken(savedUser);
+
+      // Store Refresh Token in HTTP-only cookie
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "development",
+        sameSite: "Strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      res.json({
+        message: "Registration successful",
+        user: {
+          _id: savedUser._id,
+          name: savedUser.name,
+          username: savedUser.username,
+          RoleId: savedUser.RoleId,
+          dcode: savedUser.dcode,
+          officeId: savedUser.officeId,
+          branchId: savedUser.branchId,
+          createdAt: savedUser.createdAt, // Optional: Send user creation date
+        },
+        accessToken, // Access Token (expires in 15 min)
+        refreshToken, // Optional: Send refresh token (only if not using cookies)
+      });
+
+    } catch (error) {
+      console.error("Database Error:", error);
+      res.status(500).json({ message: "Database error", error });
+    }
+  }
+);
+
+router.post
+  ("/login",
+
+    async (req, res) => {
+
+      try {
+
+        // 🔹 Decrypt incoming data
+        const bytes = CryptoJS.AES.decrypt(req.body.data, process.env.ENCRYPTION_KEY);
+        const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+
+        if (!decryptedData.username || !decryptedData.password) {
+          return res.status(400).json({ message: "Invalid credentials" });
+        }
+
+        // // Handle validation errors
+        // const errors = validationResult(req);
+        // if (!errors.isEmpty()) {
+        //   return res.status(400).json({ errors: errors.array() });
+        // }
+        // 🔹 Manually validate instead of using `body()`
+        const { username, password } = decryptedData;
+        if (!username.trim() || !password.trim()) {
+          return res.status(400).json({ message: "Username and password are required" });
+        }
+
+        // 🔹 Find user by username
+        const user = await User.findOne({ username });
+        if (!user) {
+          return res.status(401).json({ message: "Invalid username or password" });
+        }
+        // 🔹 Verify password using Argon2
+        const isMatch = await argon2.verify(user.password, password);
+        if (!isMatch) {
+          return res.status(401).json({ message: "Invalid username or password" });
+        }
+
+        // 🔹 Generate Tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+        // 🔹 Store Refresh Token in HTTP-only cookie (for security)
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV !== "development",
+          sameSite: "Strict",
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        res.json({
+          message: "Login successful",
+          user: {
+            _id: user._id,
+            name: user.name,
+            username: user.username,
+            RoleId: user.RoleId,
+            dcode: user.dcode,
+            officeId: user.officeId,
+            branchId: user.branchId,
+          },
+          accessToken, // Access Token (expires in 15 min)
+          refreshToken, // Optional: send if not using cookies
+        });
+
+      } catch (error) {
+        console.error("Login Error:", error);
+        res.status(500).json({ message: "Server error", error });
+      }
+    }
+  );
+  router.post("/refresh", async (req, res) => {
+    try {
+      const { refreshToken } = req.body;
+      if (!refreshToken) {
+        return res.status(401).json({ message: "Refresh token is required" });
       }
   
-      // Check if old password matches
-      const isMatch = await bcrypt.compare(oldPassword, user.password);
-      if (!isMatch) {
-        return res.status(400).send({ message: 'Incorrect old password' });
-      }
+      // Verify Refresh Token
+      jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, decoded) => {
+        if (err) {
+          return res.status(403).json({ message: "Invalid or expired refresh token" });
+        }
   
-      // Hash the new password
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(newPassword, salt);
+        // Find user by ID
+        const user = await User.findById(decoded.userId);
+        if (!user || user.refreshToken !== refreshToken) {
+          return res.status(403).json({ message: "Invalid refresh token" });
+        }
   
-      // Save the updated user
-      await user.save();
+        // Generate a new Access Token
+        const newAccessToken = jwt.sign(
+          { userId: user._id, username: user.username, RoleId: user.RoleId },
+          process.env.ACCESS_TOKEN_SECRET,
+          { expiresIn: "15m" } // Access token expires in 15 minutes
+        );
   
-      // Respond with success message
-      res.status(200).send({ message: 'Password updated successfully' });
-    } catch (err) {
-      console.error(err);
-      res.status(500).send({ message: 'Server error', error: err.message });
+        res.json({ accessToken: newAccessToken });
+      });
+    } catch (error) {
+      console.error("Error in refresh token:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
   });
   
-  
-  // router.post('/ChangePassword', async (req, res) => {
-  //   const { username, oldPassword, newPassword } = req.body;
-  
-  //   try {
-  //     const user = await User.findOne({ username });
-  
-  //     if (!user || user.password !== oldPassword) {
-  //       return res.status(400).json({ message: 'Invalid username or password' });
-  //     }
-  
-  //     user.password = newPassword;
-  //     await user.save();
-  
-  //     res.json({ message: 'Password changed successfully' });
-  //   } catch (error) {
-  //     console.error(error);
-  //     res.status(500).json({ message: 'Internal server error' });
-  //   }
-  // });
-  
-  
-  module.exports = router;
-  
+
+// router.post("/logout", (req, res) => {
+//   // Clear the jwt cookie by setting it with maxAge: 0
+//   res.cookie("jwt", "", { maxAge: 0, httpOnly: true });
+
+//   // Respond with a success message
+//   res.send({ message: "Logged out successfully" });
+// });
+router.post("/logout", (req, res) => {
+  res.clearCookie("refreshToken");
+  res.json({ message: "Logout successful" });
+});
+
+router.post('/ChangePassword', async (req, res) => {
+  const { token, oldPassword, newPassword } = req.body;
+
+  try {
+    // Verify the JWT token
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, // ✅ Secure storage
+    );
+console.log(decoded)
+    const user = await User.findById(decoded._id); // Find user by decoded ID
+
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+// Check if old password matches
+const isMatch = await argon2.verify(user.password, oldPassword);
+if (!isMatch) {
+  return res.status(400).send({ message: 'Incorrect old password' });
+}
+
+    // // Check if old password matches
+    // const isMatch = await bcrypt.compare(oldPassword, user.password);
+    // if (!isMatch) {
+    //   return res.status(400).send({ message: 'Incorrect old password' });
+    // }
+    // Hash password using Argon2
+    user.password = await argon2.hash(newPassword, { type: argon2.argon2id });
+    console.log(user.password)
+    // Hash the new password
+  //  const salt = await bcrypt.genSalt(10);
+ //   user.password = await bcrypt.hash(newPassword, salt);
+
+    // Save the updated user
+    await user.save();
+
+    // Respond with success message
+    res.status(200).send({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: 'Server error', error: err.message });
+  }
+});
+
+
+module.exports = router;

@@ -5,6 +5,8 @@ const docUpload = require('../docUpload/docUploadModel')
 const router = Router()
 const multer = require('multer');
 const storage = multer.memoryStorage()
+const { Readable } = require('stream');
+const authenticateToken = require("../authMiddleware");
 //const upload = multer({ storage: storage })
 
 // router.post('/upload', upload.single('file'), async (req, res) => {
@@ -53,7 +55,7 @@ const upload = multer({
 });
 
 // Route to Handle PDF Uploads
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', upload.single('file'),authenticateToken, async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });
@@ -79,7 +81,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 // Define another API endpoint to fetch and view documents
-router.get('/ViewDocument/:_id', async (req, res) => {
+router.get('/ViewDocument/:_id',authenticateToken, async (req, res) => {
     const documentId = req.params._id; // Use params to get the documentId from URL parameters
 
     try {
@@ -90,9 +92,20 @@ router.get('/ViewDocument/:_id', async (req, res) => {
             return res.status(404).json({ error: 'Document not found' });
         }
 
+         // Ensure the content type is PDF
+         res.setHeader('Content-Type', 'application/pdf');
+         res.setHeader('Content-Disposition', `inline; filename="${document.name}"`);
+ 
+         // Create a readable stream from the binary data
+         const fileStream = new Readable();
+         fileStream.push(document.doc.data);
+         fileStream.push(null);
+ 
+         // Pipe the stream to the response
+         fileStream.pipe(res);
         // Send the binary data of the document
-        res.contentType('application/pdf'); // Assuming the document is a PDF
-        res.send(document.doc.data); 
+        //res.contentType('application/pdf'); // Assuming the document is a PDF
+       // res.send(document.doc.data); 
     } catch (error) {
         console.error('Error fetching document:', error);
         res.status(500).json({ error: 'Internal server error' });

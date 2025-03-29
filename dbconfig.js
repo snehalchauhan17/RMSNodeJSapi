@@ -20,7 +20,7 @@ let dbInstance;
 // MongoDB connection with Mongoose
 const connectToMongoose = async () => {
     if (mongooseConnected) {
-        console.log("Already connected to MongoDB with Mongoose.");
+        // console.log("Already connected to MongoDB with Mongoose.");
         return;
     }
 
@@ -37,7 +37,7 @@ const connectToMongoose = async () => {
 // MongoDB connection with MongoClient
 const connectToMongoClient = async () => {
     if (mongoClientConnected) {
-        console.log("Already connected to MongoDB with MongoClient.");
+        // console.log("Already connected to MongoDB with MongoClient.");
         return dbInstance;
     }
 
