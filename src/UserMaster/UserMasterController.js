@@ -1,6 +1,5 @@
 
 const { Router } = require('express')
-const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const User = require('../UserMaster/MUserMasterModel')
 const router = Router()
@@ -50,7 +49,7 @@ const generateAccessToken = (user) => {
   return jwt.sign(
     { _id: user._id, username: user.username, RoleId: user.RoleId },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn: "15m" } // Access token expires in 15 min
+    { expiresIn:    process.env.ACCESS_TOKEN_EXPIRY } // Access token expires in 15 min
   );
 };
 
@@ -58,7 +57,7 @@ const generateRefreshToken = (user) => {
   return jwt.sign(
     { _id: user._id },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: "7d" } // Refresh token lasts 7 days
+    { expiresIn:  process.env.REFRESH_TOKEN_EXPIRY } // Refresh token lasts 7 days
   );
 };
 
@@ -105,6 +104,7 @@ router.post(
         officeId,
         branchId,
         RoleId,
+        SessionId:''
       });
 
       // Save user to DB
@@ -113,14 +113,6 @@ router.post(
       // Generate Tokens
       const accessToken = generateAccessToken(savedUser);
       const refreshToken = generateRefreshToken(savedUser);
-
-      // Store Refresh Token in HTTP-only cookie
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== "development",
-        sameSite: "Strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
 
       res.json({
         message: "Registration successful",
@@ -145,120 +137,127 @@ router.post(
   }
 );
 
-router.post
-  ("/login",
+router.post("/login", async (req, res) => {
+  try {
+    // 🔹 Decrypt incoming data
+    const bytes = CryptoJS.AES.decrypt(req.body.data, process.env.ENCRYPTION_KEY);
+    const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
 
-    async (req, res) => {
-
-      try {
-
-        // 🔹 Decrypt incoming data
-        const bytes = CryptoJS.AES.decrypt(req.body.data, process.env.ENCRYPTION_KEY);
-        const decryptedData = JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
-
-        if (!decryptedData.username || !decryptedData.password) {
-          return res.status(400).json({ message: "Invalid credentials" });
-        }
-
-        // // Handle validation errors
-        // const errors = validationResult(req);
-        // if (!errors.isEmpty()) {
-        //   return res.status(400).json({ errors: errors.array() });
-        // }
-        // 🔹 Manually validate instead of using `body()`
-        const { username, password } = decryptedData;
-        if (!username.trim() || !password.trim()) {
-          return res.status(400).json({ message: "Username and password are required" });
-        }
-
-        // 🔹 Find user by username
-        const user = await User.findOne({ username });
-        if (!user) {
-          return res.status(401).json({ message: "Invalid username or password" });
-        }
-        // 🔹 Verify password using Argon2
-        const isMatch = await argon2.verify(user.password, password);
-        if (!isMatch) {
-          return res.status(401).json({ message: "Invalid username or password" });
-        }
-
-        // 🔹 Generate Tokens
-        const accessToken = generateAccessToken(user);
-        const refreshToken = generateRefreshToken(user);
-        // 🔹 Store Refresh Token in HTTP-only cookie (for security)
-        res.cookie("refreshToken", refreshToken, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV !== "development",
-          sameSite: "Strict",
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
-
-        res.json({
-          message: "Login successful",
-          user: {
-            _id: user._id,
-            name: user.name,
-            username: user.username,
-            RoleId: user.RoleId,
-            dcode: user.dcode,
-            officeId: user.officeId,
-            branchId: user.branchId,
-          },
-          accessToken, // Access Token (expires in 15 min)
-          refreshToken, // Optional: send if not using cookies
-        });
-
-      } catch (error) {
-        console.error("Login Error:", error);
-        res.status(500).json({ message: "Server error", error });
-      }
+    if (!decryptedData.username || !decryptedData.password) {
+      return res.status(400).json({ message: "Invalid credentials" });
     }
-  );
+
+    // 🔹 Manually validate input
+
+    const { username, password } = decryptedData;
+    if (!username.trim() || !password.trim()) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
+
+    // 🔹 Find user by username
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
+
+    // 🔹 Verify password using Argon2
+    const isMatch = await argon2.verify(user.password, password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid username or password" });
+    }
+    // 🔹 Generate New Tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+   
+// 🔹 Generate New Unique Session ID
+const SessionId = crypto.randomUUID(); // or use randomBytes if needed
+
+// 🔹 Update user with new sessionId
+user.SessionId = SessionId;
+await user.save();
+
+
+    res.json({
+      message: "Login successful",
+      user: {
+        _id: user._id,
+        name: user.name,
+        username: user.username,
+        RoleId: user.RoleId,
+        dcode: user.dcode,
+        officeId: user.officeId,
+        branchId: user.branchId,
+        SessionId: SessionId
+      },
+      accessToken,
+      refreshToken,
+
+    });
+
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
   router.post("/refresh", async (req, res) => {
     try {
-      const { refreshToken } = req.body;
-      if (!refreshToken) {
-        return res.status(401).json({ message: "Refresh token is required" });
-      }
-  
-      // Verify Refresh Token
-      jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, decoded) => {
-        if (err) {
-          return res.status(403).json({ message: "Invalid or expired refresh token" });
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(401).json({ message: "Refresh token is required" });
         }
-  
-        // Find user by ID
-        const user = await User.findById(decoded.userId);
-        if (!user || user.refreshToken !== refreshToken) {
-          return res.status(403).json({ message: "Invalid refresh token" });
-        }
-  
-        // Generate a new Access Token
-        const newAccessToken = jwt.sign(
-          { userId: user._id, username: user.username, RoleId: user.RoleId },
-          process.env.ACCESS_TOKEN_SECRET,
-          { expiresIn: "15m" } // Access token expires in 15 minutes
-        );
-  
-        res.json({ accessToken: newAccessToken });
-      });
+        // 🔹 Verify token and get user details
+        jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, decoded) => {
+            if (err) {
+                return res.status(403).json({ message: "Invalid or expired refresh token" });
+            }
+
+            const user = await User.findById(decoded._id);
+
+            if (!user) {
+                return res.status(403).json({ message: "User not found" });
+            }
+
+            // 🔹 Generate new tokens (without updating the session in the database)
+            const newAccessToken = generateAccessToken(user);
+            const newRefreshToken = generateRefreshToken(user);
+
+            // 🔹 Send new tokens without modifying UserSession
+            res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+        });
     } catch (error) {
-      console.error("Error in refresh token:", error);
-      res.status(500).json({ message: "Internal server error" });
+        console.error("Error in refresh token:", error);
+        res.status(500).json({ message: "Internal server error" });
     }
-  });
-  
+});
 
-// router.post("/logout", (req, res) => {
-//   // Clear the jwt cookie by setting it with maxAge: 0
-//   res.cookie("jwt", "", { maxAge: 0, httpOnly: true });
+router.post('/verifySession', async (req, res) => {
+  const { sessionId, username } = req.body;
 
-//   // Respond with a success message
-//   res.send({ message: "Logged out successfully" });
-// });
-router.post("/logout", (req, res) => {
-  res.clearCookie("refreshToken");
-  res.json({ message: "Logout successful" });
+  try {
+    if (!username || !sessionId) {
+      return res.status(400).send({ message: 'Username and sessionId are required' });
+    }
+
+    // 🔍 Find user by username (not _id)
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.status(404).send({ message: 'User not found' });
+    }
+ 
+    if (!user.SessionId || !user.username || user.SessionId !== sessionId || user.username !== username) {
+      return res.status(401).send({ message: '❌ Session mismatch or tampered session.' });
+    }
+
+    // ✅ Session match
+    return res.status(200).send({ message: '✅ Session is valid' });
+
+  } catch (err) {
+    console.error("🔥 verifySession error:", err);
+    return res.status(500).send({ message: 'Server error', error: err.message });
+  }
 });
 
 router.post('/ChangePassword', async (req, res) => {
@@ -268,30 +267,21 @@ router.post('/ChangePassword', async (req, res) => {
     // Verify the JWT token
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, // ✅ Secure storage
     );
-console.log(decoded)
+
     const user = await User.findById(decoded._id); // Find user by decoded ID
 
     if (!user) {
       return res.status(404).send({ message: 'User not found' });
     }
-// Check if old password matches
-const isMatch = await argon2.verify(user.password, oldPassword);
-if (!isMatch) {
-  return res.status(400).send({ message: 'Incorrect old password' });
-}
+    // Check if old password matches
+    const isMatch = await argon2.verify(user.password, oldPassword);
+    if (!isMatch) {
+      return res.status(400).send({ message: 'Incorrect old password' });
+    }
 
-    // // Check if old password matches
-    // const isMatch = await bcrypt.compare(oldPassword, user.password);
-    // if (!isMatch) {
-    //   return res.status(400).send({ message: 'Incorrect old password' });
-    // }
     // Hash password using Argon2
     user.password = await argon2.hash(newPassword, { type: argon2.argon2id });
-    console.log(user.password)
-    // Hash the new password
-  //  const salt = await bcrypt.genSalt(10);
- //   user.password = await bcrypt.hash(newPassword, salt);
-
+ 
     // Save the updated user
     await user.save();
 

@@ -30,11 +30,18 @@ const musermasterSchema =mongoose.Schema(
     RoleId: {
         type: String,
         required: true
-    }
+    },
+    SessionId: {
+        type: String,
+        required: false, // 👈 Make it optional
+        default: null    // 👈 Optional: default to null
+      }
+    
     },
     {
         timestamps : true
     }
+
 
 )
 

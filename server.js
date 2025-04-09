@@ -15,6 +15,7 @@ const UserMaster = require('./src/UserMaster/UserMasterController');
 const branchmaster = require('./src/BranchMaster/BranchMasterController');
 const officemaster = require('./src/OfficeMaster/OfficeMasterController');
 
+
 const app = express()
 const port = process.env.PORT || 3000;
 
@@ -28,6 +29,8 @@ const corsOptions = {
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true, // enable session cookies from the browser to be sent with each request
   optionsSuccessStatus: 204,
+  allowedHeaders: ["Authorization", "Content-Type"] // ✅ Allow Authorization header
+
 };
 app.use(cors(corsOptions));
 
@@ -67,6 +70,7 @@ app.use("/api",docUpload)
 app.use("/api",UserMaster)
 app.use("/api",branchmaster)
 app.use("/api",officemaster)
+
 app.options('*', cors()); 
 
 // ------------------ 4. Security Headers Middleware ------------------
@@ -101,16 +105,33 @@ app.use((req, res, next) => {
 // ------------------ 5. Secure Cookies Middleware ------------------
 
 // Global function to set secure cookies
-app.use((req, res, next) => {
-  res.cookie('sessionId', 'randomValue', {
-    httpOnly: true,        // Prevents JavaScript access
-    secure: true,          // Ensures cookies are sent only over HTTPS
-    sameSite: 'Strict',    // Prevents CSRF attacks
-    maxAge: 24 * 60 * 60 * 1000 // Expires in 1 day
-  });
+// app.use((req, res, next) => {
+//   res.cookie('sessionId', 'randomValue', {
+//     httpOnly: true,        // Prevents JavaScript access
+//     secure: true,          // Ensures cookies are sent only over HTTPS
+//     sameSite: 'Strict',    // Prevents CSRF attacks
+//     maxAge: 24 * 60 * 60 * 1000 // Expires in 1 day
+//   });
 
-  next();
-});
+//   next();
+// });
+
+// Set global cookie options
+// const globalCookieOptions = {
+//   httpOnly: true,
+//   secure: true, // Make sure to use HTTPS in production
+//   sameSite: 'Strict', // or 'Lax', depending on your use case
+//   // maxAge: 3600000, // Optional: 1 hour expiry
+// };
+
+// // Example usage in middleware:
+// app.use((req, res, next) => {
+//   res.setCookie = (name, value, options = {}) => {
+//     const finalOptions = { ...globalCookieOptions, ...options };
+//     res.cookie(name, value, finalOptions);
+//   };
+//   next();
+// });
 
 // ✅ Function to Generate Secure Random Session ID
 function generateSessionId() {
