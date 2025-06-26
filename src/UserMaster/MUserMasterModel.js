@@ -23,13 +23,19 @@ const musermasterSchema =mongoose.Schema(
         type: String,
         required: true
     },
-    branchId: {
-        type: String,
-        required: true
-    },
+ 
+    // 🟢 Move RoleId BEFORE branchId
     RoleId: {
-        type: String,
-        required: true
+      type: Number, // 🛠 Changed to Number so we can compare with === 1
+      required: true
+    },
+
+    // 🟢 Now RoleId will be available for validation
+    branchId: {
+      type: Number,
+      required: function () {
+        return this.RoleId !== 1;
+      }
     },
     SessionId: {
         type: String,

@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
 const { MongoClient } = require('mongodb');
-
+const mongoURI = process.env.MONGO_URI;
+const dbName = process.env.DB_NAME;
 // MongoDB connection string and options
-const mongoURI = 'mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin';
+// const mongoURI = 'mongodb://admin:admin123@10.154.2.63:27017/?authSource=admin';
 const options = {
-    dbName: 'RMS'
+    dbName: dbName
     // , // Specify the database name here
     // useNewUrlParser: true,
     // useUnifiedTopology: true,
@@ -44,7 +45,7 @@ const connectToMongoClient = async () => {
     try {
         const client = new MongoClient(mongoURI, options);
         await client.connect();
-        dbInstance = client.db('RMS');
+        dbInstance = client.db(dbName);
         mongoClientConnected = true;
         console.log("Connected to MongoDB with MongoClient");
         return dbInstance;

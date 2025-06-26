@@ -4,7 +4,7 @@ const { ObjectId } = require('mongodb');  // Import ObjectId
 const authenticateToken = require("../authMiddleware");
 const router = Router();
 const { connectToMongoClient } = require('../../dbconfig');
-
+const OfficeMaster_H  = require('../OfficeMaster/OfficeMasterModel_H'); // Import the history model
 router.post("/InsertOffice",authenticateToken, async (req, res) => {
   const { name, OTYP, dcode } = req.body;
 
@@ -241,6 +241,7 @@ router.put('/UpdateOffice/:_id', authenticateToken,async (req, res) => {
       const updatedData = req.body;
       delete updatedData._id;  // Remove _id from updatedData
 
+
     // Validate _id format
     
     if (!ObjectId.isValid(_id)) {
@@ -251,6 +252,19 @@ router.put('/UpdateOffice/:_id', authenticateToken,async (req, res) => {
       if (!updatedData || Object.keys(updatedData).length === 0) {
           return res.status(400).json({ message: "Data to update cannot be empty!" });
       }
+   // Save history without changing `_id`
+    const officeInsertHistory = new OfficeMaster_H({
+      originalId: existingRecord._id,  // ✅ Reference to the original record
+      officeData: existingRecord.toObject(), // ✅ Save entire record as an object
+      action: "UPDATED",
+      updatedBy,
+      ipAddress,
+      updatedOn,
+      historyDate: new Date() // ✅ Add current timestamp for history record
+    });
+
+    await officeInsertHistory.save();
+
       const db = await connectToMongoClient();
       const collection = db.collection("OfficeMaster"); // Get the collection
 

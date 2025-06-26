@@ -72,7 +72,16 @@ router.post(
       .isStrongPassword().withMessage("Password must contain uppercase, lowercase, number, and special character"),
     body("dcode").toInt().isInt(),
     body("officeId").toInt().isInt(),
-    body("branchId").toInt().isInt(),
+    body("branchId")
+      .custom((value, { req }) => {
+        const roleId = parseInt(req.body.RoleId);
+        if (roleId !== 1 && (value === undefined || value === null || value === '')) {
+          throw new Error("branchId is required for roles other than 1");
+        }
+        return true;
+      })
+      .optional({ checkFalsy: true })
+      .toInt(),
     body("RoleId").toInt().isInt(),
   ],
   async (req, res) => {
@@ -87,7 +96,8 @@ router.post(
       const { name, username, password, dcode, officeId, branchId, RoleId } = req.body;
 
       // Check if the username already exists
-      const existingUser = await User.findOne({ username });
+  const existingUser = await User.findOne({ username: { $regex: `^${username}$`, $options: "i" } });
+       
       if (existingUser) {
         return res.status(400).json({ message: "Username is already taken" });
       }
@@ -102,7 +112,7 @@ router.post(
         password: hashedPassword,
         dcode,
         officeId,
-        branchId,
+         branchId: RoleId === 1 ? null : branchId, // If RoleId is 1, branchId can be null
         RoleId,
         SessionId:''
       });

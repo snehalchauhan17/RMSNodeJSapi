@@ -71,12 +71,18 @@ router.get("/VillageListbyID/:dcode/:TCode", authenticateToken, async (req, res)
     res.status(500).send('Internal Server Error');
   }
 });
+function getISTDate() {
+  const now = new Date();
+  now.setHours(now.getHours() + 5, now.getMinutes() + 30);
+  return now;
+}
+
 //Data Enter
 router.post('/InsertRecord', authenticateToken, async (req, res) => {
   // const { userId, createdBy } = req.body;  // Get createdBy from request
 
 
-
+let officeId = req.body.officeId
   let Year = req.body.Year
   let IssueDate = req.body.IssueDate
   let Branch = req.body.Branch
@@ -110,7 +116,7 @@ router.post('/InsertRecord', authenticateToken, async (req, res) => {
   }
 
   const dataentry = new DataEntry({
-
+officeId: officeId,
     Year: Year,
     IssueDate: IssueDate,
     Branch: Branch,
@@ -133,7 +139,7 @@ router.post('/InsertRecord', authenticateToken, async (req, res) => {
     anyDetail: anyDetail,
     documentId: documentId,
     createdBy: createdBy,
-    createdOn: Date.now(),  // ✅ Store timestamp
+    createdOn: getISTDate(),
     ipAddress: ipAddress
   })
   const result = await dataentry.save()
@@ -152,7 +158,7 @@ router.put('/UpdateRecord/:_id', authenticateToken, async (req, res) => {
 
     const _id = req.params._id;
     const { updatedBy } = req.body;
-    const updatedOn = new Date();
+    const updatedOn = getISTDate();
 
     let ipAddress = req.headers['x-forwarded-for']?.split(',')[0] || req.connection.remoteAddress || req.socket.remoteAddress;
     if (ipAddress.includes('::ffff:')) {
@@ -173,7 +179,7 @@ router.put('/UpdateRecord/:_id', authenticateToken, async (req, res) => {
       updatedBy,
       ipAddress,
       updatedOn,
-      historyDate: new Date() // ✅ Add current timestamp for history record
+      historyDate: getISTDate() // ✅ Add current timestamp for history record
     });
 
     await recordInsertHistory.save();
@@ -186,6 +192,9 @@ router.put('/UpdateRecord/:_id', authenticateToken, async (req, res) => {
       updatedOn,
       ipAddress
     };
+    if (typeof req.body.documentId === "undefined") {
+      updatedData.documentId = existingRecord.documentId;
+    }
     const updatedRecord = await DataEntry.findByIdAndUpdate(_id, updatedData, { new: true });
     res.json({ message: "Record updated successfully.", data: updatedRecord });
 
@@ -783,6 +792,7 @@ router.get("/searchRecordList", authenticateToken, async (req, res) => {
         const branchlist = branchRecord.map(v => v._id.toString());
 
         query.Branch = { $in: branchlist };
+        console.log('query.Branch:', query.Branch);
       } else {
         return res.status(404).json({ message: "No matching villages found" });
       }
@@ -891,7 +901,7 @@ router.get("/searchRecordList", authenticateToken, async (req, res) => {
         },
       },
     ]).toArray();
-
+console.log('results:', results);
     res.json(results);
   } catch (error) {
     console.error("Error fetching search records:", error);

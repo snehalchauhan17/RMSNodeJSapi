@@ -5,6 +5,7 @@ const { ObjectId } = require('mongodb');
 
 const dataentryschema = new Schema(
     {
+      officeId: { type: Number },
       Year: { type: String},
       IssueDate: { type: Date },  // Change to Date type for better handling
       Branch: { type: String },
@@ -28,9 +29,9 @@ const dataentryschema = new Schema(
       documentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Document' },  // Reference to another collection
      // Existing fields...
      createdBy: { type: String },  // Stores the username
-     createdOn: { type: Date, default: Date.now },  // Stores creation timestamp
+     createdOn: { type: Date},  // Stores creation timestamp
      updatedBy: { type: String },  // Stores the username
-    updatedOn: { type: Date, default: Date.now },  // Stores creation timestamp
+    updatedOn: { type: Date },  // Stores creation timestamp
      ipAddress: { type: String }  // Stores the user's IP address
  
       // If you want to link another document (optional, uncomment if needed)
