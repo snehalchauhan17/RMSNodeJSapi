@@ -1,12 +1,12 @@
 const { Router } = require('express')
-const DataEntry = require('../DataEntry/DataEntryModel')
+const createDataEntryModel  = require('../DataEntry/DataEntryModel')
 const DataEntry_H = require('../DataEntry/DataEntryModel_H')
 const router = Router()
 const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 const axios = require('axios'); // Import axios for making API calls
-const { connectToMongoClient } = require('../../dbconfig');
+const { connectToMongoClient,getMongooseConnection } = require('../../dbconfig');
 const authenticateToken = require("../authMiddleware");
 const { Console } = require('console');
 router.get("/TalukaListFromDist", authenticateToken, async (req, res) => {
@@ -82,6 +82,7 @@ router.post('/InsertRecord', authenticateToken, async (req, res) => {
   // const { userId, createdBy } = req.body;  // Get createdBy from request
 
 
+
 let officeId = req.body.officeId
   let Year = req.body.Year
   let IssueDate = req.body.IssueDate
@@ -105,6 +106,12 @@ let officeId = req.body.officeId
   let anyDetail = req.body.anyDetail
   let documentId = req.body.documentId
   let createdBy = req.body.createdBy
+
+    const conn = await getMongooseConnection(DCode);
+console.log("conn", conn);
+    // 2. Get DataEntry model from that connection
+    const DataEntry = createDataEntryModel(conn);
+    console.log("DataEntry", DataEntry);
   // let ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
   // Extract the IP address
   // Extract the correct IP address
@@ -369,374 +376,28 @@ router.get('/RecordList', authenticateToken, async (req, res) => {
     throw error;
   }
 });
+function formatDateDDMMYYYY(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  if (isNaN(d)) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}-${month}-${year}`;
+}
 
-// router.get("/searchRecordList", authenticateToken, async (req, res) => {
-//   try {
+async function getSearchRecords(queryParams, db) {
 
+  
+  const {
+    Year, Branch, Category, HukamNo, HukamDate,
+    DCode, Taluka, Village, SurveyNo, Name,
+    Subject, PotlaNo, FeristNo
+  } = queryParams;
 
-//     const db = await connectToMongoClient();
-//     const collection = db.collection("dataentries");
-//     const TalukaMaster = db.collection("TalukaMaster");
-//     const VillageMaster = db.collection("VillageMaster");
-//     const BranchMaster = db.collection("BranchMaster");
+  const query = {};
+  const collection = db.collection("dataentries");
 
-//     // Extract search parameters from the query string
-//     const { Year, Branch, Category, HukamNo, HukamDate, DCode, Taluka, Village, SurveyNo, Name, Subject, PotlaNo, FeristNo } = req.query;
-//     const query = {};
-
-//     const normalizedTaluka = Taluka ? Taluka.trim() : null;
-//     const normalizedBranch = Branch ? Branch.trim() : null;
-//     const normalizedVillage = Village ? Village.trim() : null;
-
-//     // Add year and other filters to query
-//     if (Year) {
-//       query.Year = { $regex: new RegExp(Year, 'i') };
-//     }
-
-//     // Handle Branch Lookup
-//     if (normalizedBranch) {
-//       const branchRecord = await BranchMaster.findOne({ BRANCH: { $regex: new RegExp(`^${Branch}$`, 'i') } });
-
-//       if (branchRecord) {
-//         query.Branch = branchRecord._id.toString();
-
-//       } else {
-//         return res.status(404).json({ message: "Branch not found" });
-//       }
-//     }
-
-//     // Handle Taluka Lookup
-//     if (normalizedTaluka) {
-//       const talukaRecord = await TalukaMaster.findOne({ TalName_G: { $regex: new RegExp(`^${Taluka}$`, 'i') } });
-
-//       if (talukaRecord) {
-//         query.Taluka = talukaRecord.TCode.toString();
-//         query.DCode = talukaRecord.DCode.toString();
-//         //   query.Taluka = talukaRecord.TCode;
-//         //   query.DCode = talukaRecord.DCode;
-
-//       } else {
-//         return res.status(404).json({ message: "Taluka not found" });
-//       }
-//     }
-
-//     // Handle Village Lookup
-//     if (normalizedVillage) {
-//       const villageRecord = await VillageMaster.findOne({ vname_g: { $regex: new RegExp(`^${Village}$`, 'i') } });
-
-     
-//       if (villageRecord) {
-//         query.Village  = villageRecord.dtv.toString();
-//         query.Taluka   = villageRecord.tcode.toString();
-//         query.DCode    = villageRecord.dcode.toString();
-
-//       } else {
-//         return res.status(404).json({ message: "Village not found" });
-//       }
-//     }
-
-//     // Handle other fields
-//     if (Category) query.Category = { $regex: new RegExp(Category, 'i') };
-//     if (HukamNo) query.HukamNo = { $regex: new RegExp(HukamNo, 'i') };
-//     if (HukamDate) query.HukamDate = { $regex: new RegExp(HukamDate, 'i') };
-//     if (SurveyNo) query.SurveyNo = { $regex: new RegExp(`^${SurveyNo}$`, 'i') };
-//     if (Name) query.Name = { $regex: new RegExp(Name, 'i') };
-//     if (Subject) query.Subject = { $regex: new RegExp(Subject, 'i') };
-//     if (PotlaNo) query.PotlaNo = { $regex: new RegExp(`^${PotlaNo}$`, 'i') };
-//     if (FeristNo) query.FeristNo = { $regex: new RegExp(FeristNo, 'i') };
-
-//     const simpleResults = await collection.find(query).toArray();
-
-//     const results = await db.collection("dataentries").aggregate([
-//       {
-//         $lookup: {
-//           from: "TalukaMaster",
-//           let: {
-//             dCode: { $convert: { input: "$DCode", to: "int", onError: null, onNull: null } },
-//             taluka: { $convert: { input: "$Taluka", to: "int", onError: null, onNull: null } }
-//           },
-//           pipeline: [
-//             {
-//               $match: {
-//                 $expr: {
-//                   $and: [
-//                     { $eq: [{ $convert: { input: "$DCode", to: "int", onError: null, onNull: null } }, "$$dCode"] },
-//                     { $eq: [{ $convert: { input: "$TCode", to: "int", onError: null, onNull: null } }, "$$taluka"] }
-//                   ]
-//                 }
-//               }
-//             }
-//           ],
-//           as: "talukaDetails"
-//         }
-//       },
-//       { $unwind: { path: "$talukaDetails", preserveNullAndEmptyArrays: true } },
-//       {
-//         $lookup: {
-//           from: "VillageMaster",
-//           let: {
-//             dCode: { $convert: { input: "$DCode", to: "int", onError: null, onNull: null } },
-//             taluka: { $convert: { input: "$Taluka", to: "int", onError: null, onNull: null } },
-//             village: { $convert: { input: "$Village", to: "int", onError: null, onNull: null } }
-//           },
-//           pipeline: [
-//             {
-//               $match: {
-//                 $expr: {
-//                   $and: [
-//                     { $eq: [{ $convert: { input: "$dcode", to: "int", onError: null, onNull: null } }, "$$dCode"] },
-//                     { $eq: [{ $convert: { input: "$tcode", to: "int", onError: null, onNull: null } }, "$$taluka"] },
-//                     { $eq: [{ $convert: { input: "$dtv", to: "int", onError: null, onNull: null } }, "$$village"] }
-//                   ]
-//                 }
-//               }
-//             }
-//           ],
-//           as: "villageDetails"
-//         }
-//       },
-//       { $unwind: { path: "$villageDetails", preserveNullAndEmptyArrays: true } },
-//       {
-//         $lookup: {
-//           from: "BranchMaster",
-//           let: { branchId: { $toString: "$Branch" } },
-//           pipeline: [
-//             {
-//               $match: {
-//                 $expr: {
-//                   $eq: [{ $toString: "$_id" }, "$$branchId"]
-//                 }
-//               }
-//             }
-//           ],
-//           as: "branchMaster"
-//         }
-//       },
-//       { $unwind: { path: "$branchMaster", preserveNullAndEmptyArrays: true } },
-//       {
-//         $project: {
-//           _id: 1,
-//           DCode: 1,
-//           Taluka: 1,
-//           Village: 1,
-//           TalukaName: { $ifNull: ["$talukaDetails.TalName_G", "Not Found"] },
-//           VillageName: { $ifNull: ["$villageDetails.vname_g", "Not Found"] },
-//           DistrictName: { $ifNull: ["$talukaDetails.DistName_G", "Not Found"] },
-//           BranchName: { $ifNull: ["$branchMaster.BRANCH", "Not Found"] },
-//           Year: 1,
-//           IssueDate: 1,
-//           Branch: 1,
-//           Category: 1,
-//           Name: 1,
-//           Address: 1,
-//           Subject: 1,
-//           HukamNo: 1,
-//           HukamDate: 1,
-//           SurveyNo: 1,
-//           CompactorNo: 1,
-//           PotlaNo: 1,
-//           FeristNo: 1,
-//           NotePage: 1,
-//           PostPage: 1,
-//           TotalPage: 1,
-//           anyDetail: 1,
-//           documentId: 1
-//         }
-//       }
-//     ]).toArray();
-    
-//     console.log("Results:", results);
-//     res.status(200).send(results);
-//   } catch (error) {
-//     console.error('Error Occurred:', error);
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
-
-// router.get("/searchRecordList", authenticateToken, async (req, res) => {
-//   try {
-//     const db = await connectToMongoClient();
-//     const collection = db.collection("dataentries");
-//     const TalukaMaster = db.collection("TalukaMaster");
-//     const VillageMaster = db.collection("VillageMaster");
-//     const BranchMaster = db.collection("BranchMaster");
-
-//     // Extract search parameters from the query string
-//     const { Year, Branch, Category, HukamNo, HukamDate, DCode, Taluka, Village, SurveyNo, Name, Subject, PotlaNo, FeristNo } = req.query;
-//     const query = {};
-
-//     // Normalize inputs
-//     const normalizedTaluka = Taluka ? Taluka.trim() : null;
-//     const normalizedBranch = Branch ? Branch.trim() : null;
-//     const normalizedVillage = Village ? Village.trim() : null;
-
-//     // Add filters to query
-//     if (Year) query.Year = { $regex: new RegExp(Year, 'i') };
-//     if (Category) query.Category = { $regex: new RegExp(Category, 'i') };
-//     if (HukamNo) query.HukamNo = { $regex: new RegExp(HukamNo, 'i') };
-//     if (HukamDate) query.HukamDate = { $regex: new RegExp(HukamDate, 'i') };
-//     if (SurveyNo) query.SurveyNo = { $regex: new RegExp(`^${SurveyNo}$`, 'i') };
-//     if (Name) query.Name = { $regex: new RegExp(Name, 'i') };
-//     if (Subject) query.Subject = { $regex: new RegExp(Subject, 'i') };
-//     if (PotlaNo) query.PotlaNo = { $regex: new RegExp(`^${PotlaNo}$`, 'i') };
-//     if (FeristNo) query.FeristNo = { $regex: new RegExp(FeristNo, 'i') };
-
-//     // Handle Branch Lookup
-//     if (normalizedBranch) {
-//       const branchRecord = await BranchMaster.findOne({ BRANCH: { $regex: new RegExp(`^${Branch}$`, 'i') } });
-//       if (branchRecord) {
-//         query.Branch = branchRecord._id.toString();
-//       } else {
-//         return res.status(404).json({ message: "Branch not found" });
-//       }
-//     }
-
-//     // Handle Taluka Lookup
-//     if (normalizedTaluka) {
-//       const talukaRecord = await TalukaMaster.findOne({ TalName_G: { $regex: new RegExp(`^${Taluka}$`, 'i') } });
-//       if (talukaRecord) {
-//         query.Taluka = talukaRecord.TCode.toString();
-//         query.DCode = talukaRecord.DCode.toString();
-//       } else {
-//         return res.status(404).json({ message: "Taluka not found" });
-//       }
-//     }
-
-//     // Handle Village Lookup
-//     if (normalizedVillage) {
-//       const villageRecord = await VillageMaster.findOne({ vname_g: { $regex: new RegExp(`^${Village}$`, 'i') } });
-//       if (villageRecord) {
-//         query.Village = villageRecord.dtv.toString();
-//         query.Taluka = villageRecord.tcode.toString();
-//         query.DCode = villageRecord.dcode.toString();
-//       } else {
-//         return res.status(404).json({ message: "Village not found" });
-//       }
-//     }
-
-//     console.log('Query:', JSON.stringify(query, null, 2));
-
-//     // Run the aggregation query
-//     const results = await collection.aggregate([
-//       { $match: query },
-//       {
-//         $lookup: {
-//           from: 'TalukaMaster',
-//           let: { dCode: '$DCode', taluka: '$Taluka' },
-//           pipeline: [
-//             {
-//               $match: {
-//                 $expr: {
-//                   $and: [
-//                     { $eq: ['$DCode', '$$dCode'] },
-//                     { $eq: ['$TCode', '$$taluka'] }
-//                   ]
-//                 }
-//               }
-//             }
-//           ],
-//           as: 'talukaDetails'
-//         }
-//       },
-//       { $unwind: { path: '$talukaDetails', preserveNullAndEmptyArrays: true } },
-//       {
-//         $lookup: {
-//           from: 'VillageMaster',
-//           let: { dCode: '$DCode', taluka: '$Taluka', village: '$Village' },
-//           pipeline: [
-//             {
-//               $match: {
-//                 $expr: {
-//                   $and: [
-//                     { $eq: ['$dcode', '$$dCode'] },
-//                     { $eq: ['$tcode', '$$taluka'] },
-//                     { $eq: ['$dtv', '$$village'] }
-//                   ]
-//                 }
-//               }
-//             }
-//           ],
-//           as: 'villageDetails'
-//         }
-//       },
-//       { $unwind: { path: '$villageDetails', preserveNullAndEmptyArrays: true } },
-//       {
-//         $lookup: {
-//           from: 'BranchMaster',
-//           let: { branchId: { $toString: '$Branch' } },
-//           pipeline: [
-//             {
-//               $match: {
-//                 $expr: { $eq: [{ $toString: '$_id' }, '$$branchId'] }
-//               }
-//             }
-//           ],
-//           as: 'branchMaster'
-//         }
-//       },
-//       { $unwind: { path: '$branchMaster', preserveNullAndEmptyArrays: true } },
-//       {
-//         $project: {
-//           _id: 1,
-//           DCode: 1,
-//           Taluka: 1,
-//           Village: 1,
-//           TalukaName: { $ifNull: ['$talukaDetails.TalName_G', 'Not Found'] },
-//           VillageName: { $ifNull: ['$villageDetails.vname_g', 'Not Found'] },
-//           DistrictName: { $ifNull: ['$talukaDetails.DistName_G', 'Not Found'] },
-//           BranchName: { $ifNull: ['$branchMaster.BRANCH', 'Not Found'] },
-//           Year: 1,
-//           IssueDate: 1,
-//           Branch: 1,
-//           Category: 1,
-//           Name: 1,
-//           Address: 1,
-//           Subject: 1,
-//           HukamNo: 1,
-//           HukamDate: 1,
-//           SurveyNo: 1,
-//           CompactorNo: 1,
-//           PotlaNo: 1,
-//           FeristNo: 1,
-//           NotePage: 1,
-//           PostPage: 1,
-//           TotalPage: 1,
-//           anyDetail: 1,
-//           documentId: 1
-//         }
-//       }
-//     ]).toArray();
-
-//     console.log('Results:', results);
-//     res.status(200).send(results);
-//   } catch (error) {
-//     console.error('Error Occurred:', error.message);
-//     res.status(500).json({ error: 'Internal Server Error' });
-//   }
-// });
-
-router.get("/searchRecordList", authenticateToken, async (req, res) => {
-  try {
-    const db = await connectToMongoClient();
-    const collection = db.collection("dataentries");
-
-    const {
-      Year,
-      Branch,
-      Category,
-      HukamNo,
-      HukamDate,
-      DCode,
-      Taluka,
-      Village,
-      SurveyNo,
-      Name,
-      Subject,
-      PotlaNo,
-      FeristNo,
-    } = req.query;
-
-    const query = {};
 
     if (Year) query.Year = { $regex: new RegExp(Year, "i") };
     if (Category) query.Category = { $regex: new RegExp(Category, "i") };
@@ -748,196 +409,179 @@ router.get("/searchRecordList", authenticateToken, async (req, res) => {
     if (PotlaNo) query.PotlaNo = { $regex: new RegExp(`^${PotlaNo}$`, "i") };
     if (FeristNo) query.FeristNo = { $regex: new RegExp(FeristNo, "i") };
 
-    if (Taluka) {
-      const talukaRecord = await db.collection("TalukaMaster").find({
-        TalName_G: { $regex: new RegExp(Taluka, "i") }, // partial match
-      }).toArray();
 
-      if (talukaRecord.length > 0) {
-        const tcodeList = talukaRecord.map(v => v.TCode);
-        const dcodeList = talukaRecord.map(v => v.DCode);
+  if (Taluka) {
+    const talukaRecord = await db.collection("TalukaMaster").find({
+      TalName_G: { $regex: new RegExp(Taluka, "i") },
+    }).toArray();
 
-        
-        query.Taluka = { $in: tcodeList };
-        query.DCode =  { $in: dcodeList };
-      } else {
-        return res.status(404).json({ message: "Taluka not found" });
-      }
+    if (talukaRecord.length > 0) {
+      query.Taluka = { $in: talukaRecord.map(v => v.TCode) };
+      query.DCode = { $in: talukaRecord.map(v => v.DCode) };
+    } else {
+      return [];
     }
+  }
 
-    if (Village) {
-      const villageRecords = await db.collection("VillageMaster").find({
-        vname_g: { $regex: new RegExp(Village, "i") }, // partial match
-      }).toArray();
-    
-      if (villageRecords.length > 0) {
-        const dtvList = villageRecords.map(v => v.dtv);
-        const tcodeList = villageRecords.map(v => v.tcode);
-        const dcodeList = villageRecords.map(v => v.dcode);
-    
-        query.Village = { $in: dtvList };
-        query.Taluka =  { $in: tcodeList };
-        query.DCode = { $in: dcodeList };
-      } else {
-        return res.status(404).json({ message: "No matching villages found" });
-      }
+  if (Village) {
+    const villageRecord = await db.collection("VillageMaster").find({
+      vname_g: { $regex: new RegExp(Village, "i") },
+    }).toArray();
+
+    if (villageRecord.length > 0) {
+      query.Village = { $in: villageRecord.map(v => v.dtv) };
+      query.Taluka = { $in: villageRecord.map(v => v.tcode) };
+      query.DCode = { $in: villageRecord.map(v => v.dcode) };
+    } else {
+      return [];
     }
+  }
 
-    if (Branch) {
-      const branchRecord = await db.collection("BranchMaster").find({
-        BRANCH: { $regex: new RegExp(Branch, "i") },
-      });
+  if (Branch) {
+    const branchRecord = await db.collection("BranchMaster").find({
+      BRANCH: { $regex: new RegExp(Branch, "i") },
+    }).toArray();
 
-      if (branchRecord.length > 0) {
-        const branchlist = branchRecord.map(v => v._id.toString());
-
-        query.Branch = { $in: branchlist };
-        console.log('query.Branch:', query.Branch);
-      } else {
-        return res.status(404).json({ message: "No matching villages found" });
-      }
-      // if (branchRecord) {
-      //   query.Branch = branchRecord._id.toString();
-      // } else {
-      //   return res.status(404).json({ message: "Branch not found" });
-      // }
+    if (branchRecord.length > 0) {
+      query.Branch = { $in: branchRecord.map(v => v._id.toString()) };
+    } else {
+      return [];
     }
+  }
 
-    const results = await collection.aggregate([
-      { $match: query },
-
-      // Taluka lookup
-      {
-        $lookup: {
-          from: "TalukaMaster",
-          let: { dCode: "$DCode", tCode: "$Taluka" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$DCode", "$$dCode"] },
-                    { $eq: ["$TCode", "$$tCode"] },
-                  ],
-                },
+  const results = await collection.aggregate([
+    { $match: query },
+    {
+      $lookup: {
+        from: "TalukaMaster",
+        let: { dCode: "$DCode", tCode: "$Taluka" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$DCode", "$$dCode"] },
+                  { $eq: ["$TCode", "$$tCode"] },
+                ],
               },
             },
-          ],
-          as: "talukaDetails",
-        },
+          },
+        ],
+        as: "talukaDetails",
       },
-      { $unwind: { path: "$talukaDetails", preserveNullAndEmptyArrays: true } },
-
-      // Village lookup
-      {
-        $lookup: {
-          from: "VillageMaster",
-          let: { dCode: "$DCode", tCode: "$Taluka", vCode: "$Village" },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$dcode", "$$dCode"] },
-                    { $eq: ["$tcode", "$$tCode"] },
-                    { $eq: ["$dtv", "$$vCode"] },
-                  ],
-                },
+    },
+    { $unwind: { path: "$talukaDetails", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "VillageMaster",
+        let: { dCode: "$DCode", tCode: "$Taluka", vCode: "$Village" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$dcode", "$$dCode"] },
+                  { $eq: ["$tcode", "$$tCode"] },
+                  { $eq: ["$dtv", "$$vCode"] },
+                ],
               },
             },
-          ],
-          as: "villageDetails",
-        },
+          },
+        ],
+        as: "villageDetails",
       },
-      { $unwind: { path: "$villageDetails", preserveNullAndEmptyArrays: true } },
-
-      // Branch lookup
-      {
-        $lookup: {
-          from: "BranchMaster",
-          let: { branchId: { $toString: "$Branch" } },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $eq: [{ $toString: "$_id" }, "$$branchId"],
-                },
+    },
+    { $unwind: { path: "$villageDetails", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "BranchMaster",
+        let: { branchId: { $toString: "$Branch" } },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $eq: [{ $toString: "$_id" }, "$$branchId"],
               },
             },
-          ],
-          as: "branchDetails",
-        },
+          },
+        ],
+        as: "branchDetails",
       },
-      { $unwind: { path: "$branchDetails", preserveNullAndEmptyArrays: true } },
+    },
+    { $unwind: { path: "$branchDetails", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        _id: 1,
+        Year: 1,
+        DCode: 1,
+        Taluka: 1,
+        Village: 1,
+        Branch: 1,
+        Name: 1,
+        Address: 1,
+        Category: 1,
+        Subject: 1,
+        HukamNo: 1,
+        HukamDate: 1,
+        SurveyNo: 1,
+        PotlaNo: 1,
+        FeristNo: 1,
+        IssueDate: 1,
+        NotePage: 1,
+        PostPage: 1,
+        TotalPage: 1,
+        anyDetail: 1,
+        documentId: 1,
+        TalukaName: "$talukaDetails.TalName_G",
+        DistrictName: "$talukaDetails.DistName_G",
+        VillageName: "$villageDetails.vname_g",
+        BranchName: "$branchDetails.BRANCH",
+      },
+    },
+  ]).toArray();
 
-      // Final shape of document
-      {
-        $project: {
-          _id: 1,
-          Year: 1,
-          DCode: 1,
-          Taluka: 1,
-          Village: 1,
-          Branch: 1,
-          Name: 1,
-          Address: 1,
-          Category: 1,
-          Subject: 1,
-          HukamNo: 1,
-          HukamDate: 1,
-          SurveyNo: 1,
-          PotlaNo: 1,
-          FeristNo: 1,
-          IssueDate: 1,
-          NotePage: 1,
-          PostPage: 1,
-          TotalPage: 1,
-          anyDetail: 1,
-          documentId: 1,
-          TalukaName: "$talukaDetails.TalName_G",
-          DistrictName: "$talukaDetails.DistName_G",
-          VillageName: "$villageDetails.vname_g",
-          BranchName: "$branchDetails.BRANCH",
-        },
-      },
-    ]).toArray();
-console.log('results:', results);
+  return results;
+}
+
+router.get("/searchRecordList", authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToMongoClient();
+    const results = await getSearchRecords(req.query, db);
     res.json(results);
   } catch (error) {
     console.error("Error fetching search records:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+function drawTableHeader(doc, headers, columnWidths, xOffset, y) {
+  const headerHeight = 70;
 
-router.get("/generatepdf", authenticateToken, async (req, res) => {
+  headers.forEach((item, i) => {
+    const cellWidth = columnWidths[i];
+    const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
 
-  // Construct the query parameters from the request
-  const queryParams = req.query; // Directly get the query parameters
-
-
-  // Call the searchRecordList API to fetch records
-  //const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
-  //  const searchResponse = await axios.get(`http://stagingrmsapp.gujarat.gov.in/rms/api/searchRecordList`, { params: queryParams });
-
-  const token = req.headers.authorization; // Extract token from request
-  const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, {
-    params: queryParams,
-    headers: { Authorization: token }
+    doc.rect(cellX, y, cellWidth, headerHeight).fillAndStroke('lightgray', 'black');
+    doc.fillColor('black').font('GujaratiFont').fontSize(10).text(item.header, cellX + 5, y + 10, {
+      width: cellWidth - 10,
+      align: 'center',
+    });
   });
 
-  const records = searchResponse.data;
+  return y + headerHeight + 5;
+}
 
-  const doc = new PDFDocument();
-  let filename = 'my-document.pdf';
+router.get("/generatepdf", authenticateToken, async (req, res) => {
+  const db = await connectToMongoClient();
+  const records = await getSearchRecords(req.query, db);
+  console.log(records);
+  const doc = new PDFDocument({ size: 'A4', layout: 'landscape' });
+  let filename = 'RecordList.pdf';
   res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
   res.setHeader('Content-type', 'application/pdf');
-
-  // Pipe the PDF into the response
   doc.pipe(res);
 
   // Load the Gujarati font (replace with the path to your font file)
   const gujaratiFontPath = path.join(__dirname, '..', 'Font', 'Shruti.ttf');
-
   doc.registerFont('GujaratiFont', gujaratiFontPath);
 
   // Add content to the PDF using the Gujarati font
@@ -951,6 +595,7 @@ router.get("/generatepdf", authenticateToken, async (req, res) => {
     { header: 'વર્ગ', field: 'Category' },
     { header: 'આખરી હુકમ નંબર', field: 'HukamNo' },
     { header: 'હુકમ ની તારીખ', field: 'HukamDate' },
+    { header: 'જિલ્લો', field: 'DistrictName' },
     { header: 'તાલુકો', field: 'TalukaName' },
     { header: 'ગામ', field: 'VillageName' },
     { header: 'સર્વે નંબર', field: 'SurveyNo' },
@@ -960,85 +605,497 @@ router.get("/generatepdf", authenticateToken, async (req, res) => {
     { header: 'ફેરીસ્ટ નંબર', field: 'FeristNo' }
   ];
 
-  // Dynamically calculate column widths with increased space
-  const columnWidths = headers.map(header => {
-    return Math.max(header.header.length * 3, 50); // Increase width to handle long texts like 'Subject', 'PotlaNo', 'FeristNo'
-  });
 
-  const tableWidth = 700;
-  const headerHeight = 70; // Height of the header row
-  //const rowHeight = 80; // Height of each regular row
+  const columnWidths = headers.map(header => Math.max(header.header.length * 6, 50));
+  const rowHeight = 50;
+  const xOffset = 20;
+  const maxY = doc.page.height - 50;
+ let y = doc.y;
+  y = drawTableHeader(doc, headers, columnWidths, xOffset, y);
 
-  //const xOffset = 10;  //this code dynamic  without modify other code 
-  // // Calculate the total table width
-  // const tableWidth = columnWidths.reduce((total, width) => total + width, 0);
 
-  // const headerHeight = 80; // Fixed header height
-  // const rowHeight = 90; // Increased row height to fit longer text
-  // const xOffset = 5;
+  records.forEach((item, index) => {
+    if (item.HukamDate) item.HukamDate = formatDateDDMMYYYY(item.HukamDate);
 
-  const rowHeight = 70; // Decreased row height to fit better (adjust as needed)
-  const xOffset = 10;
-  const pageHeight = 750; // Define a maximum page height (adjust based on your needs)
-
-  let y = doc.y;
-  let rowCount = 0; // Track rows to manage page breaks
-
-  // Draw header row
-  doc.fontSize(10).fillColor('black');
-  headers.forEach((item, i) => {
-    const cellWidth = columnWidths[i];
-    const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
-
-    // Draw header cell with headerHeight
-    doc.rect(cellX, y, cellWidth, headerHeight).fillAndStroke('lightgray', 'black');
-
-    // Draw header text
-    doc.fillColor('black').text(item.header, cellX + 5, y + 10, { width: cellWidth - 10, align: 'center' });
-  });
-
-  // Draw a line under the header
-  y += headerHeight; // Move down to the next row position
-  doc.moveTo(xOffset, y).lineTo(xOffset + tableWidth, y).stroke();
-  y += 5; // Add some space before the first data row
-
-  // Loop through each record and create table rows
-  records.forEach(item => {
-    if (y + rowHeight > pageHeight) {
-      // Check if there is enough space on the current page
-      doc.addPage(); // Add a new page if needed
-      y = 0; // Reset Y position for the new page
-      rowCount = 0; // Reset row count on a new page
+    if (y + rowHeight > maxY) {
+      doc.addPage();
+      y = 50;
+      y = drawTableHeader(doc, headers, columnWidths, xOffset, y);
     }
 
-    // Draw table rows
-    doc.fontSize(7);
-    doc.fillColor('black');
-    headers.forEach((header, i) => {
+    doc.fontSize(7).fillColor('black').font('GujaratiFont');
+
+  headers.forEach((header, i) => {
       const cellWidth = columnWidths[i];
       const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
       const cellValue = item[header.field] || '';
 
-      // Draw cell border for regular rows
       doc.rect(cellX, y, cellWidth, rowHeight).stroke();
-
-      // Draw cell value
-      doc.text(cellValue, cellX + 5, y + 5, { width: cellWidth - 10, align: 'center' });
+      doc.text(cellValue.toString(), cellX + 5, y + 5, {
+        width: cellWidth - 10,
+        align: 'center',
+      });
     });
-
-    // Move to the next row
     y += rowHeight;
-    rowCount++;
 
-    // If the row count exceeds a certain threshold (e.g., 10 rows), consider adding a new page
-    if (rowCount > 10) {
-      doc.addPage();
-      y = 0; // Reset y position
-      rowCount = 0; // Reset row count
-    }
   });
 
   // Finalize the PDF and end the stream
   doc.end();
 });
+// router.get("/generatepdf", authenticateToken, async (req, res) => {
+//   try {
+//     const db = await connectToMongoClient();
+//     const records = await getSearchRecords(req.query, db);
+// console.log(records);
+// const doc = new PDFDocument({ size: 'A4', layout: 'landscape' });
+//   let filename = 'RecordList.pdf';
+//   res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
+//   res.setHeader('Content-type', 'application/pdf');
+
+//   // Pipe the PDF into the response
+//   doc.pipe(res);
+
+//   // Load the Gujarati font (replace with the path to your font file)
+//   const gujaratiFontPath = path.join(__dirname, '..', 'Font', 'Shruti.ttf');
+
+//   doc.registerFont('GujaratiFont', gujaratiFontPath);
+
+//   // Add content to the PDF using the Gujarati font
+//   doc.font('GujaratiFont').fontSize(20).text('રેકોર્ડ લિસ્ટ', { align: 'center' });
+//   doc.moveDown();
+
+//   // Define headers and corresponding fields
+//   const headers = [
+//     { header: 'ફાઇલનુ વર્ષ', field: 'Year' },
+//     { header: 'શાખા', field: 'BranchName' },
+//     { header: 'વર્ગ', field: 'Category' },
+//     { header: 'આખરી હુકમ નંબર', field: 'HukamNo' },
+//     { header: 'હુકમ ની તારીખ', field: 'HukamDate' },
+//     { header: 'જિલ્લો', field: 'DistrictName' },
+//     { header: 'તાલુકો', field: 'TalukaName' },
+//     { header: 'ગામ', field: 'VillageName' },
+//     { header: 'સર્વે નંબર', field: 'SurveyNo' },
+//     { header: 'અરજદાર નુ નામ', field: 'Name' },
+//     { header: 'વિષય', field: 'Subject' },
+//     { header: 'પોટલા નંબર', field: 'PotlaNo' },
+//     { header: 'ફેરીસ્ટ નંબર', field: 'FeristNo' }
+//   ];
+     
+
+
+//  const columnWidths = headers.map(header => Math.max(header.header.length * 6, 50));
+//     const tableWidth = columnWidths.reduce((a, b) => a + b, 0);
+//     const headerHeight = 70;
+//     const xOffset = 10;
+//     const pageHeight = 750; // Adjust for landscape A4
+//     let y = doc.y;
+
+//  // Draw header row function (for reuse)
+//     function drawHeaderRow() {
+//       doc.font('GujaratiFont').fontSize(10).fillColor('black');
+//       headers.forEach((item, i) => {
+//         const cellWidth = columnWidths[i];
+//         const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
+//         doc.rect(cellX, y, cellWidth, headerHeight).fillAndStroke('lightgray', 'black');
+//         doc.fillColor('black').text(item.header, cellX + 5, y + 15, { width: cellWidth - 10, align: 'center' });
+//       });
+//       y += headerHeight;
+//       doc.moveTo(xOffset, y).lineTo(xOffset + tableWidth, y).stroke();
+//       y += 5;
+//     }
+
+//         // Draw first header
+//     drawHeaderRow();
+
+//   // Loop through each record and create table rows
+//   records.forEach(item => {
+//       // Format HukamDate (and any other date fields you want)
+//   if (item.HukamDate) {
+//     item.HukamDate = formatDateDDMMYYYY(item.HukamDate);
+//   }
+//      // 1. Calculate the height needed for each cell in this row
+//       const cellHeights = headers.map((header, i) => {
+//         const cellWidth = columnWidths[i] - 10; // padding
+//     const cellValue = item[header.field] ? String(item[header.field]) : '';
+
+//         return doc.heightOfString(cellValue, {
+//           width: cellWidth,
+//           align: 'center',
+//           font: 'GujaratiFont',
+//           size: 8
+//         }) + 10; // vertical padding
+//       });
+
+//  // 2. Set rowHeight to the max cell height for this row
+//       const dynamicRowHeight = Math.max(...cellHeights, 30);
+//     // 3. Page break if needed
+//       if (y + dynamicRowHeight > pageHeight) {
+//         doc.addPage();
+// y = 40; // <<-- Set this to a value like 40 (top margin for new page)
+//             drawHeaderRow();
+//         // Redraw header on new page
+//           doc.font('GujaratiFont').fontSize(10).fillColor('black');
+//     headers.forEach((item, i) => {
+//     const cellWidth = columnWidths[i];
+//     const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
+//     doc.rect(cellX, y, cellWidth, headerHeight).fillAndStroke('lightgray', 'black');
+//     doc.fillColor('black').text(item.header, cellX + 5, y + 15, { width: cellWidth - 10, align: 'center' });
+//   });
+//     y += headerHeight;
+//     doc.moveTo(xOffset, y).lineTo(xOffset + tableWidth, y).stroke();
+//     y += 5;
+//   }
+
+//   // Draw the row
+//   doc.font('GujaratiFont').fontSize(8).fillColor('black');
+//   headers.forEach((header, i) => {
+//     const cellWidth = columnWidths[i];
+//     const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
+//     const cellValue = item[header.field] ? String(item[header.field]) : '';
+//     doc.rect(cellX, y, cellWidth, dynamicRowHeight).stroke();
+//     doc.text(cellValue, cellX + 5, y + 5, { width: cellWidth - 10, align: 'center' });
+//   });
+
+
+//       // Move to the next row
+//       y += dynamicRowHeight;
+
+//     });
+
+//     // Finalize the PDF and end the stream
+//     doc.end();
+//   } catch (error) {
+//     console.error("Error generating PDF:", error);
+//     res.status(500).json({ message: "Failed to generate PDF" });
+//   }
+// });
+// router.get("/searchRecordList", authenticateToken, async (req, res) => {
+//   try {
+//     const db = await connectToMongoClient();
+//     const collection = db.collection("dataentries");
+
+//     const {
+//       Year,
+//       Branch,
+//       Category,
+//       HukamNo,
+//       HukamDate,
+//       DCode,
+//       Taluka,
+//       Village,
+//       SurveyNo,
+//       Name,
+//       Subject,
+//       PotlaNo,
+//       FeristNo,
+//     } = req.query;
+
+//     const query = {};
+
+//     if (Year) query.Year = { $regex: new RegExp(Year, "i") };
+//     if (Category) query.Category = { $regex: new RegExp(Category, "i") };
+//     if (HukamNo) query.HukamNo = { $regex: new RegExp(HukamNo, "i") };
+//     if (HukamDate) query.HukamDate = { $regex: new RegExp(HukamDate, "i") };
+//     if (SurveyNo) query.SurveyNo = { $regex: new RegExp(`^${SurveyNo}$`, "i") };
+//     if (Name) query.Name = { $regex: new RegExp(Name, "i") };
+//     if (Subject) query.Subject = { $regex: new RegExp(Subject, "i") };
+//     if (PotlaNo) query.PotlaNo = { $regex: new RegExp(`^${PotlaNo}$`, "i") };
+//     if (FeristNo) query.FeristNo = { $regex: new RegExp(FeristNo, "i") };
+
+//     if (Taluka) {
+//       const talukaRecord = await db.collection("TalukaMaster").find({
+//         TalName_G: { $regex: new RegExp(Taluka, "i") }, // partial match
+//       }).toArray();
+
+//       if (talukaRecord.length > 0) {
+//         const tcodeList = talukaRecord.map(v => v.TCode);
+//         const dcodeList = talukaRecord.map(v => v.DCode);
+
+        
+//         query.Taluka = { $in: tcodeList };
+//         query.DCode =  { $in: dcodeList };
+//       } else {
+//         return res.status(404).json({ message: "Taluka not found" });
+//       }
+//     }
+
+//     if (Village) {
+//       const villageRecords = await db.collection("VillageMaster").find({
+//         vname_g: { $regex: new RegExp(Village, "i") }, // partial match
+//       }).toArray();
+    
+//       if (villageRecords.length > 0) {
+//         const dtvList = villageRecords.map(v => v.dtv);
+//         const tcodeList = villageRecords.map(v => v.tcode);
+//         const dcodeList = villageRecords.map(v => v.dcode);
+    
+//         query.Village = { $in: dtvList };
+//         query.Taluka =  { $in: tcodeList };
+//         query.DCode = { $in: dcodeList };
+//       } else {
+//         return res.status(404).json({ message: "No matching villages found" });
+//       }
+//     }
+
+//     if (Branch) {
+
+//       const branchRecord = await db.collection("BranchMaster").find({
+//   BRANCH: { $regex: new RegExp(Branch, "i") },
+// }).toArray(); // <-- Add this
+
+
+//       if (branchRecord.length > 0) {
+//         const branchlist = branchRecord.map(v => v._id.toString());
+
+//         query.Branch = { $in: branchlist };
+
+//       } else {
+//         return res.status(404).json({ message: "No matching villages found" });
+//       }
+//       // if (branchRecord) {
+//       //   query.Branch = branchRecord._id.toString();
+//       // } else {
+//       //   return res.status(404).json({ message: "Branch not found" });
+//       // }
+//     }
+
+//     const results = await collection.aggregate([
+//       { $match: query },
+
+//       // Taluka lookup
+//       {
+//         $lookup: {
+//           from: "TalukaMaster",
+//           let: { dCode: "$DCode", tCode: "$Taluka" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $and: [
+//                     { $eq: ["$DCode", "$$dCode"] },
+//                     { $eq: ["$TCode", "$$tCode"] },
+//                   ],
+//                 },
+//               },
+//             },
+//           ],
+//           as: "talukaDetails",
+//         },
+//       },
+//       { $unwind: { path: "$talukaDetails", preserveNullAndEmptyArrays: true } },
+
+//       // Village lookup
+//       {
+//         $lookup: {
+//           from: "VillageMaster",
+//           let: { dCode: "$DCode", tCode: "$Taluka", vCode: "$Village" },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $and: [
+//                     { $eq: ["$dcode", "$$dCode"] },
+//                     { $eq: ["$tcode", "$$tCode"] },
+//                     { $eq: ["$dtv", "$$vCode"] },
+//                   ],
+//                 },
+//               },
+//             },
+//           ],
+//           as: "villageDetails",
+//         },
+//       },
+//       { $unwind: { path: "$villageDetails", preserveNullAndEmptyArrays: true } },
+
+//       // Branch lookup
+//       {
+//         $lookup: {
+//           from: "BranchMaster",
+//           let: { branchId: { $toString: "$Branch" } },
+//           pipeline: [
+//             {
+//               $match: {
+//                 $expr: {
+//                   $eq: [{ $toString: "$_id" }, "$$branchId"],
+//                 },
+//               },
+//             },
+//           ],
+//           as: "branchDetails",
+//         },
+//       },
+//       { $unwind: { path: "$branchDetails", preserveNullAndEmptyArrays: true } },
+
+//       // Final shape of document
+//       {
+//         $project: {
+//           _id: 1,
+//           Year: 1,
+//           DCode: 1,
+//           Taluka: 1,
+//           Village: 1,
+//           Branch: 1,
+//           Name: 1,
+//           Address: 1,
+//           Category: 1,
+//           Subject: 1,
+//           HukamNo: 1,
+//           HukamDate: 1,
+//           SurveyNo: 1,
+//           PotlaNo: 1,
+//           FeristNo: 1,
+//           IssueDate: 1,
+//           NotePage: 1,
+//           PostPage: 1,
+//           TotalPage: 1,
+//           anyDetail: 1,
+//           documentId: 1,
+//           TalukaName: "$talukaDetails.TalName_G",
+//           DistrictName: "$talukaDetails.DistName_G",
+//           VillageName: "$villageDetails.vname_g",
+//           BranchName: "$branchDetails.BRANCH",
+//         },
+//       },
+//     ]).toArray();
+
+//     res.json(results);
+//   } catch (error) {
+//     console.error("Error fetching search records:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
+// router.get("/generatepdf", authenticateToken, async (req, res) => {
+
+//   // Construct the query parameters from the request
+//   const queryParams = req.query; // Directly get the query parameters
+
+
+//   // Call the searchRecordList API to fetch records
+//   //const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, { params: queryParams });
+//   //  const searchResponse = await axios.get(`http://stagingrmsapp.gujarat.gov.in/rms/api/searchRecordList`, { params: queryParams });
+
+//   const token = req.headers.authorization; // Extract token from request
+//   const searchResponse = await axios.get(`http://localhost:3000/api/searchRecordList`, {
+//     params: queryParams,
+//     headers: { Authorization: token }
+//   });
+
+//   const records = searchResponse.data;
+
+//   const doc = new PDFDocument();
+//   let filename = 'my-document.pdf';
+//   res.setHeader('Content-disposition', `attachment; filename="${filename}"`);
+//   res.setHeader('Content-type', 'application/pdf');
+
+//   // Pipe the PDF into the response
+//   doc.pipe(res);
+
+//   // Load the Gujarati font (replace with the path to your font file)
+//   const gujaratiFontPath = path.join(__dirname, '..', 'Font', 'Shruti.ttf');
+
+//   doc.registerFont('GujaratiFont', gujaratiFontPath);
+
+//   // Add content to the PDF using the Gujarati font
+//   doc.font('GujaratiFont').fontSize(20).text('રેકોર્ડ લિસ્ટ', { align: 'center' });
+//   doc.moveDown();
+
+//   // Define headers and corresponding fields
+//   const headers = [
+//     { header: 'ફાઇલનુ વર્ષ', field: 'Year' },
+//     { header: 'શાખા', field: 'BranchName' },
+//     { header: 'વર્ગ', field: 'Category' },
+//     { header: 'આખરી હુકમ નંબર', field: 'HukamNo' },
+//     { header: 'હુકમ ની તારીખ', field: 'HukamDate' },
+//     { header: 'તાલુકો', field: 'TalukaName' },
+//     { header: 'ગામ', field: 'VillageName' },
+//     { header: 'સર્વે નંબર', field: 'SurveyNo' },
+//     { header: 'અરજદાર નુ નામ', field: 'Name' },
+//     { header: 'વિષય', field: 'Subject' },
+//     { header: 'પોટલા નંબર', field: 'PotlaNo' },
+//     { header: 'ફેરીસ્ટ નંબર', field: 'FeristNo' }
+//   ];
+
+//   // Dynamically calculate column widths with increased space
+//   const columnWidths = headers.map(header => {
+//     return Math.max(header.header.length * 3, 50); // Increase width to handle long texts like 'Subject', 'PotlaNo', 'FeristNo'
+//   });
+
+//   const tableWidth = 700;
+//   const headerHeight = 70; // Height of the header row
+//   //const rowHeight = 80; // Height of each regular row
+
+//   //const xOffset = 10;  //this code dynamic  without modify other code 
+//   // // Calculate the total table width
+//   // const tableWidth = columnWidths.reduce((total, width) => total + width, 0);
+
+//   // const headerHeight = 80; // Fixed header height
+//   // const rowHeight = 90; // Increased row height to fit longer text
+//   // const xOffset = 5;
+
+//   const rowHeight = 70; // Decreased row height to fit better (adjust as needed)
+//   const xOffset = 10;
+//   const pageHeight = 750; // Define a maximum page height (adjust based on your needs)
+
+//   let y = doc.y;
+//   let rowCount = 0; // Track rows to manage page breaks
+
+//   // Draw header row
+//   doc.fontSize(10).fillColor('black');
+//   headers.forEach((item, i) => {
+//     const cellWidth = columnWidths[i];
+//     const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
+
+//     // Draw header cell with headerHeight
+//     doc.rect(cellX, y, cellWidth, headerHeight).fillAndStroke('lightgray', 'black');
+
+//     // Draw header text
+//     doc.fillColor('black').text(item.header, cellX + 5, y + 10, { width: cellWidth - 10, align: 'center' });
+//   });
+
+//   // Draw a line under the header
+//   y += headerHeight; // Move down to the next row position
+//   doc.moveTo(xOffset, y).lineTo(xOffset + tableWidth, y).stroke();
+//   y += 5; // Add some space before the first data row
+
+//   // Loop through each record and create table rows
+//   records.forEach(item => {
+//     if (y + rowHeight > pageHeight) {
+//       // Check if there is enough space on the current page
+//       doc.addPage(); // Add a new page if needed
+//       y = 0; // Reset Y position for the new page
+//       rowCount = 0; // Reset row count on a new page
+//     }
+
+//     // Draw table rows
+//     doc.fontSize(7);
+//     doc.fillColor('black');
+//     headers.forEach((header, i) => {
+//       const cellWidth = columnWidths[i];
+//       const cellX = xOffset + columnWidths.slice(0, i).reduce((a, b) => a + b, 0);
+//       const cellValue = item[header.field] || '';
+
+//       // Draw cell border for regular rows
+//       doc.rect(cellX, y, cellWidth, rowHeight).stroke();
+
+//       // Draw cell value
+//       doc.text(cellValue, cellX + 5, y + 5, { width: cellWidth - 10, align: 'center' });
+//     });
+
+//     // Move to the next row
+//     y += rowHeight;
+//     rowCount++;
+
+//     // If the row count exceeds a certain threshold (e.g., 10 rows), consider adding a new page
+//     if (rowCount > 10) {
+//       doc.addPage();
+//       y = 0; // Reset y position
+//       rowCount = 0; // Reset row count
+//     }
+//   });
+
+//   // Finalize the PDF and end the stream
+//   doc.end();
+// });
 module.exports = router;

@@ -49,7 +49,7 @@ const generateAccessToken = (user) => {
   return jwt.sign(
     { _id: user._id, username: user.username, RoleId: user.RoleId },
     process.env.ACCESS_TOKEN_SECRET,
-    { expiresIn:    process.env.ACCESS_TOKEN_EXPIRY } // Access token expires in 15 min
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY } // Access token expires in 15 min
   );
 };
 
@@ -57,7 +57,7 @@ const generateRefreshToken = (user) => {
   return jwt.sign(
     { _id: user._id },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn:  process.env.REFRESH_TOKEN_EXPIRY } // Refresh token lasts 7 days
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY } // Refresh token lasts 7 days
   );
 };
 
@@ -96,8 +96,8 @@ router.post(
       const { name, username, password, dcode, officeId, branchId, RoleId } = req.body;
 
       // Check if the username already exists
-  const existingUser = await User.findOne({ username: { $regex: `^${username}$`, $options: "i" } });
-       
+      const existingUser = await User.findOne({ username: { $regex: `^${username}$`, $options: "i" } });
+
       if (existingUser) {
         return res.status(400).json({ message: "Username is already taken" });
       }
@@ -112,9 +112,9 @@ router.post(
         password: hashedPassword,
         dcode,
         officeId,
-         branchId: RoleId === 1 ? null : branchId, // If RoleId is 1, branchId can be null
+        branchId: RoleId === 1 ? null : branchId, // If RoleId is 1, branchId can be null
         RoleId,
-        SessionId:''
+        SessionId: ''
       });
 
       // Save user to DB
@@ -178,13 +178,13 @@ router.post("/login", async (req, res) => {
     // 🔹 Generate New Tokens
     const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user);
-   
-// 🔹 Generate New Unique Session ID
-const SessionId = crypto.randomUUID(); // or use randomBytes if needed
 
-// 🔹 Update user with new sessionId
-user.SessionId = SessionId;
-await user.save();
+    // 🔹 Generate New Unique Session ID
+    const SessionId = crypto.randomUUID(); // or use randomBytes if needed
+
+    // 🔹 Update user with new sessionId
+    user.SessionId = SessionId;
+    await user.save();
 
 
     res.json({
@@ -210,36 +210,36 @@ await user.save();
   }
 });
 
-  router.post("/refresh", async (req, res) => {
-    try {
-        const { refreshToken } = req.body;
+router.post("/refresh", async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
 
-        if (!refreshToken) {
-            return res.status(401).json({ message: "Refresh token is required" });
-        }
-        // 🔹 Verify token and get user details
-        jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, decoded) => {
-            if (err) {
-                return res.status(403).json({ message: "Invalid or expired refresh token" });
-            }
-
-            const user = await User.findById(decoded._id);
-
-            if (!user) {
-                return res.status(403).json({ message: "User not found" });
-            }
-
-            // 🔹 Generate new tokens (without updating the session in the database)
-            const newAccessToken = generateAccessToken(user);
-            const newRefreshToken = generateRefreshToken(user);
-
-            // 🔹 Send new tokens without modifying UserSession
-            res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
-        });
-    } catch (error) {
-        console.error("Error in refresh token:", error);
-        res.status(500).json({ message: "Internal server error" });
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token is required" });
     }
+    // 🔹 Verify token and get user details
+    jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, decoded) => {
+      if (err) {
+        return res.status(403).json({ message: "Invalid or expired refresh token" });
+      }
+
+      const user = await User.findById(decoded._id);
+
+      if (!user) {
+        return res.status(403).json({ message: "User not found" });
+      }
+
+      // 🔹 Generate new tokens (without updating the session in the database)
+      const newAccessToken = generateAccessToken(user);
+      const newRefreshToken = generateRefreshToken(user);
+
+      // 🔹 Send new tokens without modifying UserSession
+      res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+    });
+  } catch (error) {
+    console.error("Error in refresh token:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 router.post('/verifySession', async (req, res) => {
@@ -256,7 +256,7 @@ router.post('/verifySession', async (req, res) => {
     if (!user) {
       return res.status(404).send({ message: 'User not found' });
     }
- 
+
     if (!user.SessionId || !user.username || user.SessionId !== sessionId || user.username !== username) {
       return res.status(401).send({ message: '❌ Session mismatch or tampered session.' });
     }
@@ -291,7 +291,7 @@ router.post('/ChangePassword', async (req, res) => {
 
     // Hash password using Argon2
     user.password = await argon2.hash(newPassword, { type: argon2.argon2id });
- 
+
     // Save the updated user
     await user.save();
 
@@ -303,5 +303,33 @@ router.post('/ChangePassword', async (req, res) => {
   }
 });
 
+router.post('/ResetUserPassword', async (req, res) => {
+  const { userId, newPassword } = req.body;
+
+  try {
+    // Find user by username (case sensitive)
+    const user = await User.findOne({ username: userId });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent setting the same password as before
+    const isSame = await argon2.verify(user.password, newPassword);
+    if (isSame) {
+      return res.status(400).json({ message: "New password must not match old password." });
+    }
+
+    // Hash and update the new password
+    user.password = await argon2.hash(newPassword, { type: argon2.argon2id });
+    await user.save();
+
+    res.json({ message: `Password reset successful of User: ${user.username}` });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ message: 'Server error', error: err.message });
+  }
+});
 
 module.exports = router;

@@ -36,28 +36,6 @@ const connectToMongoose = async () => {
     }
 };
 
-
-const connections = {}; // Cache for Mongoose connections per db
-const getMongooseConnection = async (dcode) => {
-    console.log("Connecting to Mongoose with dcode:", dcode);
-
-    const DB_District = dcode ? `RMSD_${dcode}` : process.env.DB_NAME;
-
-    if (connections[DB_District]) {
-        return connections[DB_District];
-    }
-
-    const conn = await mongoose.createConnection(process.env.MONGO_URI, {
-        dbName: DB_District,
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    });
-
-    connections[DB_District] = conn;
-    console.log(`✅ Mongoose connected to DB: ${DB_District}`);
-    return conn;
-};
-
 // MongoDB connection with MongoClient
 const connectToMongoClient = async () => {
     if (mongoClientConnected) {
@@ -83,5 +61,4 @@ const connectToMongoClient = async () => {
 module.exports = {
     connectToMongoose,
     connectToMongoClient,
-    getMongooseConnection
 };

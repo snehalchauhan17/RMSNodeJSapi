@@ -3,6 +3,9 @@ const { Schema } = mongoose;
 //const docUpload =require('../docUpload/docUploadModel');
 const { ObjectId } = require('mongodb');
 
+
+
+
 const dataentryschema = new Schema(
     {
       officeId: { type: Number },
@@ -45,6 +48,10 @@ const dataentryschema = new Schema(
       timestamps: true,
     }
   );
-const DataEntry =mongoose.model('DataEntry',dataentryschema);
+// const DataEntry =mongoose.model('DataEntry',dataentryschema);
 
-module.exports =DataEntry;
+// module.exports =DataEntry;
+
+module.exports = (connection) => {
+  return connection.model('DataEntry', dataentryschema);
+};

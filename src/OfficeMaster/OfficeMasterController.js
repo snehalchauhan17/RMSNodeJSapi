@@ -4,8 +4,8 @@ const { ObjectId } = require('mongodb');  // Import ObjectId
 const authenticateToken = require("../authMiddleware");
 const router = Router();
 const { connectToMongoClient } = require('../../dbconfig');
-const OfficeMaster_H  = require('../OfficeMaster/OfficeMasterModel_H'); // Import the history model
-router.post("/InsertOffice",authenticateToken, async (req, res) => {
+const OfficeMaster_H = require('../OfficeMaster/OfficeMasterModel_H'); // Import the history model
+router.post("/InsertOffice", authenticateToken, async (req, res) => {
   const { name, OTYP, dcode } = req.body;
 
   try {
@@ -33,10 +33,10 @@ router.post("/InsertOffice",authenticateToken, async (req, res) => {
     // Create the new office document
     const newOffice = {
       idno: Number(nextOfficeId),
-      dcode:Number(dcode),
+      dcode: Number(dcode),
       name,
-      name_e :name_e,
-      OTYP:Number(OTYP),
+      name_e: name_e,
+      OTYP: Number(OTYP),
 
     };
 
@@ -52,9 +52,9 @@ router.post("/InsertOffice",authenticateToken, async (req, res) => {
 });
 
 // Define your API endpoint
-router.get("/BranchList",authenticateToken, async (req, res) => {
+router.get("/BranchList", authenticateToken, async (req, res) => {
   try {
-    
+
     const db = await connectToMongoClient();
     const collection = db.collection("BranchMaster"); // Get the collection
     const results = await collection.find({}).toArray(); // Query the collection
@@ -65,79 +65,79 @@ router.get("/BranchList",authenticateToken, async (req, res) => {
   }
 });
 
-router.get("/OfficeMasterList",authenticateToken, async (req, res) => {
-    try {
-      
+router.get("/OfficeMasterList", authenticateToken, async (req, res) => {
+  try {
 
-      const db = await connectToMongoClient();
-      const collection = db.collection("OfficeMaster"); 
 
-        // Perform aggregation with $lookup to join with districtmaster
-        const results = await collection.aggregate([
-          {
-              $lookup: {
-                  from: 'DistrictMaster', // The collection to join
-                  localField: 'dcode', // Field from officemaster collection
-                  foreignField: 'dcode', // Field from districtmaster collection
-                  as: 'districtInfo' // Output array field
-              }
-          },
-          {
-              $unwind: {
-                  path: '$districtInfo', // Unwind to convert the array to a single object
-                  preserveNullAndEmptyArrays: true // Preserve offices with no matching district
-              }
-          },
-          {
-            // Project to return only the needed fields
-            $project: {
-                idno: 1, // Include idno
-                name: 1, // Include name
-                OTYP: 1, // Include OTYP
-                dcode:1,
-                dname: '$districtInfo.name_g' // Include district name from the joined collection
-            }
+    const db = await connectToMongoClient();
+    const collection = db.collection("OfficeMaster");
+
+    // Perform aggregation with $lookup to join with districtmaster
+    const results = await collection.aggregate([
+      {
+        $lookup: {
+          from: 'DistrictMaster', // The collection to join
+          localField: 'dcode', // Field from officemaster collection
+          foreignField: 'dcode', // Field from districtmaster collection
+          as: 'districtInfo' // Output array field
         }
-      ]).toArray();
-
-     // const results = await collection.find({}).toArray(); // Query the collection
-
-
-      res.status(200).send(results); // Send the results as the response
-
-    } catch (error) {
-      console.error('Error retrieving data:', error);
-      res.status(500).send('Internal Server Error');
-    }
-  });
-
-  router.get('/FindOfficebyId/:_id',authenticateToken, async (req, res) => {
-    try {
-     
-        const _id = req.params._id.toString();
-        const db = await connectToMongoClient();
-        const collection = db.collection("OfficeMaster"); // Get the collection
-  
-        // Check if _id is a valid ObjectId string format
-        if (!ObjectId.isValid(_id)) {
-          return res.status(400).json({ message: 'Invalid ObjectId format' });
+      },
+      {
+        $unwind: {
+          path: '$districtInfo', // Unwind to convert the array to a single object
+          preserveNullAndEmptyArrays: true // Preserve offices with no matching district
+        }
+      },
+      {
+        // Project to return only the needed fields
+        $project: {
+          idno: 1, // Include idno
+          name: 1, // Include name
+          OTYP: 1, // Include OTYP
+          dcode: 1,
+          dname: '$districtInfo.name_g' // Include district name from the joined collection
+        }
       }
-       
-     
+    ]).toArray();
 
-        // Find the record by _id
-        const user = await collection.findOne({  _id: new ObjectId(_id) });
-        if (!user) {
-            return res.status(404).json({ message: 'Cannot find record' });
-        }
-  
-        res.status(200).json(user);
-    } catch (err) {
-        console.error("Error fetching record:", err);
-        return res.status(500).json({ message: err.message });
+    // const results = await collection.find({}).toArray(); // Query the collection
+
+
+    res.status(200).send(results); // Send the results as the response
+
+  } catch (error) {
+    console.error('Error retrieving data:', error);
+    res.status(500).send('Internal Server Error');
+  }
+});
+
+router.get('/FindOfficebyId/:_id', authenticateToken, async (req, res) => {
+  try {
+
+    const _id = req.params._id.toString();
+    const db = await connectToMongoClient();
+    const collection = db.collection("OfficeMaster"); // Get the collection
+
+    // Check if _id is a valid ObjectId string format
+    if (!ObjectId.isValid(_id)) {
+      return res.status(400).json({ message: 'Invalid ObjectId format' });
     }
-  });
-  
+
+
+
+    // Find the record by _id
+    const user = await collection.findOne({ _id: new ObjectId(_id) });
+    if (!user) {
+      return res.status(404).json({ message: 'Cannot find record' });
+    }
+
+    res.status(200).json(user);
+  } catch (err) {
+    console.error("Error fetching record:", err);
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 // //Data Delete
 // router.delete('/DeleteOffice/:_id', async (req, res) => {
 //   try {
@@ -158,29 +158,29 @@ router.get("/OfficeMasterList",authenticateToken, async (req, res) => {
 //   }
 // });
 
-router.delete('/DeleteOffice/:_id',authenticateToken, async (req, res) => {
+router.delete('/DeleteOffice/:_id', authenticateToken, async (req, res) => {
   try {
-   
-      const _id = req.params._id;
 
-      if (!_id) {
-          return res.status(400).json({ message: 'Missing _id parameter in request' });
-      }
+    const _id = req.params._id;
 
-      const db = await connectToMongoClient();
-      const collection = db.collection("OfficeMaster"); // Get the collection
+    if (!_id) {
+      return res.status(400).json({ message: 'Missing _id parameter in request' });
+    }
 
-      // Use MongoDB's deleteOne method with an ObjectId
-      const result = await collection.deleteOne({ _id: new require('mongodb').ObjectId(_id) });
+    const db = await connectToMongoClient();
+    const collection = db.collection("OfficeMaster"); // Get the collection
 
-      if (result.deletedCount === 0) {
-          return res.status(404).json({ message: 'Record not found' });
-      }
+    // Use MongoDB's deleteOne method with an ObjectId
+    const result = await collection.deleteOne({ _id: new require('mongodb').ObjectId(_id) });
 
-      return res.json({ message: 'Record deleted successfully' });
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    return res.json({ message: 'Record deleted successfully' });
   } catch (error) {
-      console.error("Error deleting record:", error);
-      return res.status(500).json({ message: error.message });
+    console.error("Error deleting record:", error);
+    return res.status(500).json({ message: error.message });
   }
 });
 
@@ -212,7 +212,7 @@ router.delete('/DeleteOffice/:_id',authenticateToken, async (req, res) => {
 //                       message: "Data to update cannot be empty!"
 //                   });
 //               }
-     
+
 //       const _id = req.params._id;
 //       const updatedData = req.body;
 
@@ -228,57 +228,69 @@ router.delete('/DeleteOffice/:_id',authenticateToken, async (req, res) => {
 //   } catch (err) {
 //       // Handle any errors that occur during the update process
 //       res.status(500).json({
-      
+
 //           message: err.message || "An error occurred while updating the record."
 //       });
 //   }
 // });
 
-router.put('/UpdateOffice/:_id', authenticateToken,async (req, res) => {
+router.put('/UpdateOffice/:_id', authenticateToken, async (req, res) => {
   try {
 
     const { _id } = req.params; // Destructure _id from req.params
-      const updatedData = req.body;
-      delete updatedData._id;  // Remove _id from updatedData
-
-
+    const updatedData = req.body;
+    delete updatedData._id;  // Remove _id from updatedData
     // Validate _id format
-    
+
     if (!ObjectId.isValid(_id)) {
       return res.status(400).json({ message: "Invalid ObjectId format." });
     }
 
 
-      if (!updatedData || Object.keys(updatedData).length === 0) {
-          return res.status(400).json({ message: "Data to update cannot be empty!" });
-      }
-   // Save history without changing `_id`
+    if (!updatedData || Object.keys(updatedData).length === 0) {
+      return res.status(400).json({ message: "Data to update cannot be empty!" });
+    }
+
+    // Fetch the existing record
+    const db = await connectToMongoClient();
+    const collection = db.collection("OfficeMaster");
+    const existingRecord = await collection.findOne({ _id: new ObjectId(_id) });
+    if (!existingRecord) {
+      return res.status(404).json({ message: "Record not found." });
+    }
+
+    // Define updatedBy, updatedOn, ipAddress
+    const updatedBy = req.user?.username || "system";
+    const updatedOn = new Date();
+    let ipAddress = req.headers['x-forwarded-for']?.split(',')[0] || req.connection?.remoteAddress || req.socket?.remoteAddress;
+    if (ipAddress && ipAddress.includes('::ffff:')) {
+      ipAddress = ipAddress.split('::ffff:')[1];
+    }
+
+    // Save history
     const officeInsertHistory = new OfficeMaster_H({
-      originalId: existingRecord._id,  // ✅ Reference to the original record
-      officeData: existingRecord.toObject(), // ✅ Save entire record as an object
+      originalId: existingRecord._id,
+      officeData: existingRecord,
       action: "UPDATED",
       updatedBy,
       ipAddress,
       updatedOn,
-      historyDate: new Date() // ✅ Add current timestamp for history record
+      historyDate: new Date()
     });
-
     await officeInsertHistory.save();
 
-      const db = await connectToMongoClient();
-      const collection = db.collection("OfficeMaster"); // Get the collection
 
-      // Update the record
-      const result = await collection.findOneAndUpdate(
-          { _id: new ObjectId(_id) }, // Filter
-          { $set: updatedData }, // Update data
-          { returnDocument: 'after' } // Return updated document
-      );
+    // Update the record
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(_id) },
+      { $set: updatedData },
+      { returnDocument: 'after' }
+    );
 
-      res.json({ message: "Record updated successfully.", data:result });
+    res.json({ message: "Record updated successfully.", data: result });
   } catch (err) {
-      console.error("Error updating record:", err);
-      res.status(500).json({ message: err.message || "An error occurred while updating the record." });
+    console.error("Error updating record:", err);
+    res.status(500).json({ message: err.message || "An error occurred while updating the record." });
   }
 });
 
